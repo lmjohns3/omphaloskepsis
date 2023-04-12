@@ -1,0 +1,8 @@
+click==8.1.2
+Flask-Bcrypt==1.0.1
+Flask-Sessions==0.1.5
+Flask-SQLAlchemy==3.0.3
+pendulum==1.2.2
+PyYAML==6.0
+redis==4.2.2
+webauthn==1.7.0
