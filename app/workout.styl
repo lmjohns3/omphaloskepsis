@@ -4,26 +4,107 @@
     width auto !important
     height auto !important
 
-.workouts
-  display flex
-  flex-flow row wrap
-  gap 0.3rem 0.3rem
-  justify-content space-evenly
-
-  div
-    background #ccc
-    border solid 1px #999
-    border-radius 0.1rem
-    cursor pointer
-    height 3rem
-    text-align center
-    width 30vw
-
-.select-exercise
-  h2
+.workout
+  h1
     display flex
-    justify-content space-between
 
-.exercise
-  .name
-    margin 0.5rem 0 0
+    *
+      flex 0 0 auto
+
+    .sep
+      flex 1 1 auto
+
+    button.start
+      font-size 0.6em
+      padding 0 0.5em
+
+  table.goals
+    border-collapse collapse
+    margin 1em 0
+
+    td, th
+      padding 0 0.5em
+
+    tbody
+      td
+        &:first-child
+          width 2em
+
+        input
+          font-size 0.8em
+          width 4em
+
+      tr:nth-child(odd) td
+        background hsl(0deg, 0%, 95%)
+
+      &:first-child, &:last-child
+        background transparent
+
+    button.remove
+      font-size 0.8em
+      opacity 0.5
+
+      &:hover
+        opacity 1
+
+  h2, h3
+    margin-top 1em
+  h3
+    margin-bottom 1em
+
+  .other-workouts
+    list-style none
+    padding 0
+
+    li
+      max-width 90%
+      overflow hidden
+      text-overflow ellipsis
+      white-space nowrap
+
+      .name
+        font-weight bold
+        margin-left 0.5em
+
+      .exercise
+        color #666
+        font-size smaller
+        margin 0.2em
+
+        &::before
+          content '/ '
+
+  .exercises
+  .tags
+    display flex
+    flex-flow row wrap
+    line-height 1
+    list-style none
+    padding 0
+
+    li
+      align-items center
+      border-radius 0.5rem
+      display flex
+      flex 0 0 auto
+      gap 0.5em
+
+  .exercises
+    gap 1rem
+
+    li
+      width 9em
+      button.add
+        flex 0 0 1.5rem
+
+  .tags
+    gap 0.2rem
+    margin 0.5em 0
+
+    li
+      background hsl(45deg, 50%, 90%)
+      font-size smaller
+      padding 0.5em 1em
+
+      &.active
+        background hsl(45deg, 50%, 80%)

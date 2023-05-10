@@ -33,31 +33,20 @@ const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
   // {false ? <Marker position={[lat, lng]}><Popup>Here!</Popup></Marker> : null}
 }
 
-const withGeo = (
-  callback,
-  timeout = 15 * 1000, // 15 sec
+const useGeo = (
+  timeout = 10 * 1000, // 10 sec
   maximumAge = 5 * 60 * 1000, // 5 min
-  enableHighAccuracy = false
+  enableHighAccuracy = false,
 ) => {
-  return callback({ lat: 37.9096, lng: -122.6961 })
-  navigator.geolocation.getCurrentPosition(
-    geo => {
-      const c = geo.coords
-      callback({
-        lat: c.latitude,
-        lng: c.longitude,
-        acc: c.accuracy,
-        alt: c.altitude,
-        heading: c.heading,
-        speed: c.speed,
-        ...c
-      })
-    },
-    console.log,
-    { timeout, maximumAge, enableHighAccuracy })
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      geo => resolve(geo.coords ? { lat: geo.coords.latitude, lng: geo.coords.longitude } : {}),
+      reject,
+      { timeout, maximumAge, enableHighAccuracy })
+  })
 }
 
 export {
   Map,
-  withGeo,
+  useGeo,
 }

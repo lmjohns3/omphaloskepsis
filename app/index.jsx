@@ -1,48 +1,59 @@
-import React from 'react'
+import dayjs from 'dayjs'
+import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom'
-import { BrowserRouter, Link, Route, useHistory } from 'react-router-dom'
+import { BrowserRouter, Link, Route, useHistory, useLocation } from 'react-router-dom'
 
-import { Event } from './event.jsx'
-import { Sleep } from './sleep.jsx'
+import { apiRead } from './api.jsx'
+import { Account, AccountContext } from './account.jsx'
+import { Collection } from './collection.jsx'
+import { Login, Logout } from './login.jsx'
+import { Snapshot } from './snapshot.jsx'
 import { Timeline } from './timeline.jsx'
 import { Workout } from './workout.jsx'
-import { postTo } from './common.jsx'
 
 import './color.styl'
 import './common.styl'
 
-const Navigation = () => {
+
+const Interstitial = () => <div className='container'>Hold on a sec...</div>
+
+
+const App = () => {
   const history = useHistory()
+  const location = useLocation()
+  const [account, setAccount] = useState(null)
 
-  const add = (dtype, args) => postTo(
-    dtype, args, data => history.push(`/${args.activity || 'event'}/${data.uid}/`))
+  useEffect(() => {
+    if (account) {
+      if (location.pathname === '/') history.replace('/timeline/')
+    } else {
+      apiRead('account')
+        .then(setAccount)
+        .catch(() => history.replace('/login/'))
+    }
+  }, [account])
 
-  return <nav><ul>
-    <li><Link title='Timeline View' to='/timeline/'>🗓️</Link></li>
-    <li className='sep'></li>
-    <li><span className='new'
-              title='New Note'
-              onClick={() => add('events', { note: '' })}>🗒️️</span></li>
-    <li><span className='new'
-              title='New Sleep'
-              onClick={() => add('spans', { activity: 'sleep' })}>💤</span></li>
-    <li><span className='new'
-              title='New Workout'
-              onClick={() => add('spans', { activity: 'workout' })}>🏋️</span></li>
-    <li className='sep'></li>
-    <li><Link title='Log Out' to='/logout/'>🚪</Link></li>
-  </ul></nav>
+  return (
+    <AccountContext.Provider value={{ account, setAccount }}>
+      <nav>
+        <ul>
+          <li><Link title='Timeline View' to='/timeline/'>🗓️</Link></li>
+          <li className='sep'></li>
+          <li><Link title='Settings' to='/account/'>⚙️</Link></li>
+          <li><Link title='Log Out' to='/logout/'>🚪</Link></li>
+        </ul>
+      </nav>
+      <Route exact path='/'><Interstitial /></Route>
+      <Route path='/account/'><Account /></Route>
+      <Route path='/login/'><Login /></Route>
+      <Route path='/logout/'><Logout /></Route>
+      <Route path='/timeline/'><Timeline /></Route>
+      <Route path='/snapshot/:id/'><Snapshot /></Route>
+      <Route path='/collection/:id/'><Collection /></Route>
+      <Route path='/workout/:id/'><Workout /></Route>
+    </AccountContext.Provider>
+  )
 }
 
-// Intl.DateTimeFormat().resolvedOptions().timeZone
 
-ReactDOM.render(
-  <BrowserRouter>
-    <Navigation />
-    <Route exact path='/'><Timeline /></Route>
-    <Route path='/timeline/'><Timeline /></Route>
-    <Route path='/event/:uid/'><Event /></Route>
-    <Route path='/sleep/:uid/'><Sleep /></Route>
-    <Route path='/workout/:uid/'><Workout /></Route>
-  </BrowserRouter>,
-  document.getElementById('app'))
+ReactDOM.render(<BrowserRouter><App /></BrowserRouter>, document.getElementById('app'))

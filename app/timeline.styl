@@ -12,38 +12,16 @@
   .label
     color #888
     display block
-    left 1rem
+    font-size smaller
     position absolute
-    top 0.25rem
+    bottom 0.25rem
+    left 0.5rem
 
   .shadow
     background #103
     height 100%
     opacity 0.05
     position absolute
-    //background linear-gradient(90deg,
-    //                           hsla(45, 100%, 70%, 0),
-    //                           hsla(45, 100%, 70%, 0.018) 2%,
-    //                           hsla(45, 100%, 70%, 0.047) 4%,
-    //                           hsla(45, 100%, 70%, 0.119) 6%,
-    //                           hsla(45, 100%, 70%, 0.269) 8%,
-    //                           hsla(45, 100%, 70%, 0.500) 10%,
-    //                           hsla(45, 100%, 70%, 0.731) 12%,
-    //                           hsla(45, 100%, 70%, 0.881) 14%,
-    //                           hsla(45, 100%, 70%, 0.953) 16%,
-    //                           hsla(45, 100%, 70%, 0.982) 18%,
-    //                           hsla(45, 100%, 70%, 1) 20%,
-    //                           hsla(45, 100%, 70%, 1) 80%,
-    //                           hsla(45, 100%, 70%, 0.982) 82%,
-    //                           hsla(45, 100%, 70%, 0.953) 84%,
-    //                           hsla(45, 100%, 70%, 0.881) 86%,
-    //                           hsla(45, 100%, 70%, 0.731) 88%,
-    //                           hsla(45, 100%, 70%, 0.500) 90%,
-    //                           hsla(45, 100%, 70%, 0.269) 92%,
-    //                           hsla(45, 100%, 70%, 0.119) 94%,
-    //                           hsla(45, 100%, 70%, 0.047) 96%,
-    //                           hsla(45, 100%, 70%, 0.018) 98%,
-    //                           hsla(45, 100%, 70%, 0))
 
   .day
     height 2rem
@@ -53,38 +31,33 @@
     &.activated
       z-index 100
 
-    &.the-1st
-      border-bottom dotted 1px hsl(300, 100%, 70%)
+    &.the-1
+      border-bottom dotted 3px hsla(0, 0, 0, 0.3)
 
-    &.the-2nd, &.the-4th, &.the-6th, &.the-8th, &.the-10th, &.the-12th, &.the-14th, &.the-16th,
-    &.the-18th, &.the-20th, &.the-22nd, &.the-24th, &.the-26th, &.the-28th, &.the-30th
-      background hsl(50, 75%, 95%)
+    &.the-2, &.the-4, &.the-6, &.the-8, &.the-10, &.the-12, &.the-14, &.the-16,
+    &.the-18, &.the-20, &.the-22, &.the-24, &.the-26, &.the-28, &.the-30
+      background-color hsla(50deg, 50%, 50%, 0.1)
+      &.Jan, &.Mar, &.May, &.Jul, &.Sep, &.Nov
+        background-color hsla(180deg, 50%, 50%, 0.1)
 
     &.Sat, &.Sun
-      //background repeating-linear-gradient(85deg,
-      //                                     transparent 0px,
-      //                                     hsla(240, 100%, 70%, 0.2) 2px,
-      //                                     transparent 4px,
-      //                                     transparent 7px)
-      background-image radial-gradient(#bdf 10%, transparent 30%),
-                       radial-gradient(#bdf 10%, transparent 30%)
-      background-position 0 0, 0.3rem 0.3rem
-      background-size 0.6rem 0.6rem
+      background-image repeating-linear-gradient(
+        50deg, transparent 0px, hsla(0, 0, 0, 0.1) 2px, transparent 4px, transparent 15px)
 
-    .event
+    .add
+      position absolute
+      top 0.25rem
+
+    .snapshot
       align-items stretch
       background transparent
       cursor pointer
       display flex
       height unquote('calc(1.5rem + 4px)')
-      margin-left -1.5rem
       position absolute
       top unquote('calc((2rem - (1.5rem + 4px)) / 2)')
+      width 8rem
       z-index 10
-
-      &.activated
-        margin-left calc(0px - 1.5rem - 2.5rem)
-        z-index 100
 
       .marker
       .button
@@ -114,22 +87,30 @@
       .button
         background #fff
         color #111
+        position relative
         width 2.5rem
+        z-index -1
 
         &.delete
           color #c00
           border-color #c00
           border-right-width 0
           border-radius 1.5rem 0 0 1.5rem
+          left 2.7rem
 
         &.move
           border-left-width 0
-
-        &.edit
-          border-left-width 0
           border-radius 0 1.5rem 1.5rem 0
+          left -2.7rem
 
-    .span
+      &.activated
+        z-index 100
+
+        .button
+          z-index 100
+          left 0
+
+    .collection
       background #888
       border-radius 0.1rem
       height 0.5rem

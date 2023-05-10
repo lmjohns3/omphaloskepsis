@@ -1,8 +1,4 @@
-div.event
-
-  h2
-    color hsl(300, 30%, 50%)
-    margin 1rem 0
+.snapshot
 
   textarea
     font-size: 1rem
@@ -17,7 +13,7 @@ div.event
     p
       margin-bottom: 0
 
-.polarity
+.mood
   cursor pointer
   height 1.5rem
   margin 0.5rem 0 1rem
@@ -58,13 +54,11 @@ div.event
     right 0
     text-align right
 
-
-.mood
+.feels
   align-items center
   display flex
   flex-flow row
   justify-content space-evenly
-
 
 .dial
   align-items center
@@ -127,3 +121,35 @@ div.event
       background hsl(0, 70%, 70%)
     &.afraid
       background hsl(120, 70%, 70%)
+
+.meter
+  display flex
+
+  span
+    flex 0 0 auto
+  .label
+    flex 0 0 5rem
+  .emoji
+    flex 0 0 1.5rem
+
+  .value
+    font-weight bold
+    text-align right
+
+    &.can-edit
+      cursor pointer
+
+  .unit
+    margin-left 0.5rem
+
+    &.options-2
+    &.options-3
+    &.options-4
+      cursor pointer
+
+      &:before
+        color hsl(300, 70%, 30%)
+        content '⟳ '
+
+  input
+    width 4rem

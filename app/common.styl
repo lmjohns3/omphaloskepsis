@@ -9,62 +9,90 @@
   line-height 1.5
 
 body
-  background #ffffff
-  color #111111
+  background hsl(0deg, 50%, 100%)
+  color hsl(0deg, 50%, 10%)
 
-code
+code, pre
   font-family 'Inconsolata', monospace
 
 nav
-  background hsl(120, 30%, 70%)
-  height 2rem
-  position sticky
+  background hsl(45deg, 20%, 80%)
+  border-bottom solid 1px hsl(45deg, 20%, 50%)
   top 0
+  height 2em
+  position sticky
   z-index 100
 
   ul
     align-items center
     display flex
+    list-style none
     padding-left 0
 
     li
       flex 0 0 auto
-      list-style-type none
-      margin-left 0.25rem
-
-      &:first-child
-        margin-left 0
 
       &.sep
         flex 1 1 auto
 
-      a, .new
-        background hsl(120, 30%, 75%)
+      a
         cursor pointer
         display block
-        padding 0.25rem 0.75rem
+        line-height 2
+        padding 0 0.7em
         text-decoration none
 
         &:hover
-          background hsl(120, 30%, 80%)
+          background hsl(120deg, 50%, 85%)
 
 ol, ul
   padding-left 1rem
 
-button.delete
-  background hsl(0, 50%, 80%)
-  border solid 1px hsl(0, 50%, 50%)
-  border-radius 100%
-  bottom 1rem
+input
+button
+  border none
+  border-radius 0.3em
+  font-size larger
+  padding 0.3em
+
+input
+  background hsl(50deg, 50%, 93%)
+
+button
+  background hsl(210deg, 50%, 90%)
+  color hsl(210deg, 50%, 40%)
   cursor pointer
-  padding 0.5rem
-  position fixed
-  right 1rem
-  width 2.5rem
+  opacity 0.9
+  text-align center
+
+  &[disabled]
+    background hsl(0deg, 10%, 90%)
+    color hsl(0deg, 10%, 80%)
+
+  &.add
+  &.delete
+  &.remove
+    font-weight bold
+    height 1.25em
+    line-height 1
+    padding 0
+    width 1.25em
+
+  &.delete
+  &.remove
+    background hsl(0, 50%, 80%)
+    color hsl(0, 80%, 40%)
+
+  &:hover
+    opacity 1
 
 .leaflet-container
-  width: 100%
-  height: 15rem
+  width 100%
+  height 10rem
+
+  .leaflet-control-attribution
+    font-family 'Fira Sans Condensed', sans-serif
+    font-size 0.5em
 
 .container
   margin 0.5rem
@@ -79,3 +107,42 @@ button.delete
   @media (max-width: 480px)
     .weekday
       display none
+
+.toggle
+  -moz-user-select none
+  -ms-user-select none
+  -webkit-user-select none
+  background hsl(150deg, 0%, 100%)
+  border solid 0.1rem #ccc
+  border-radius 0.7rem
+  cursor pointer
+  display inline-block
+  height 1.4rem
+  margin 0 0.5rem
+  position relative
+  top 0.3rem
+  transition background-color 0.2s ease-in
+  width 2.5rem
+
+  &:before
+    background hsl(150deg, 100%, 90%)
+    border solid 0.1rem #ccc
+    border-radius 100%
+    box-sizing border-box
+    content ''
+    display block
+    height 1rem
+    margin 0
+    position absolute
+    right 1.2rem
+    top 0.1rem
+    transition all 0.2s ease-in 0s
+    width 1rem
+
+  &.toggled
+    background hsl(150deg, 80%, 40%)
+    border-color hsl(150deg, 80%, 40%)
+
+    &:before
+      border-color hsl(150deg, 80%, 90%)
+      right 0.1rem

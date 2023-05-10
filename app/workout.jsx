@@ -1,73 +1,195 @@
-import dwt from 'discrete-wavelets'
 import dayjs from 'dayjs'
-import useNoSleep from 'use-no-sleep'
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+dayjs.extend(require('dayjs/plugin/utc'))
+dayjs.extend(require('dayjs/plugin/timezone'))
+dayjs.extend(require('dayjs/plugin/duration'))
+dayjs.extend(require('dayjs/plugin/minMax'))
 
-import { loadFrom, postTo, roundTenths, When } from './common.jsx'
-import { Meter, Vitals } from './vitals.jsx'
+import dwt from 'discrete-wavelets'
+import useNoSleep from 'use-no-sleep'
+import React, { Fragment, useEffect, useState } from 'react'
+import { useHistory, useParams } from 'react-router-dom'
+
+import { apiCreate, apiRead } from './api.jsx'
+import { roundTenths, When } from './common.jsx'
+import { useGeo } from './geo.jsx'
 
 import './workout.styl'
 
-const Workout = () => {
-  const id = useParams().id
+
+const Workout = () => useParams().id === 'new' ? <New /> : <Existing />
+
+
+const New = () => {
+  const history = useHistory()
   const [config, setConfig] = useState(null)
-  const [span, setSpan] = useState(null)
-  const [events, setEvents] = useState(null)
-  const [workout, setWorkout] = useState(null) // List of exercise names
-  const [active, setActive] = useState(null) // Active event
+  const [targets, setTargets] = useState([])
+  const [shuffle, setShuffle] = useState(true)
+  const [repeat, setRepeat] = useState(true)
+  const [showWorkouts, setShowWorkouts] = useState(true)
+  const [activeTag, setActiveTag] = useState('cardio')
 
-  const isOngoing = event => event.exercise &&
-    dayjs.utc().diff(dayjs.utc(event.utc), 's') < event.exercise.duration_s
+  const start = () => apiCreate('workouts', {
+    tags: ['workout'],
+    goals: { targets: targets, shuffle: shuffle, repeat: repeat },
+  }).then(res => history.push(`/workout/${res.id}/`))
 
-  useEffect(() => {
-    loadFrom('config', {}, setConfig)
-    loadFrom(`spans/${id}`, {}, setSpan)
-    loadFrom(`spans/${id}/events`, {}, setEvents)
-  }, [])
+  const addExercise = id => () => setTargets(cur => [ ...cur, { id: id } ])
 
-  useEffect(() => {
-    if (!config || !span || !events) return
-
-    const exercises = config.workouts[span.description]
-    if (!exercises) return
-
-    // Set the workout from the span information.
-    const completed = new Set(events.map(ev => ev.exercise?.exercise))
-    setWorkout(exercises.filter(name => !completed.has(name)))
-
-    // If there's an exercise that hasn't finished yet, make that one current.
-    events.forEach(ev => { if (isOngoing(ev)) setActive(ev) })
-  }, [config, span, events])
-
-  if (!events || !span || !config) return null
-
-  const children = events.filter(ev => ev.exercise && !isOngoing(ev)).map(
-    ev => <CompletedExercise key={ev.id} exercise={ev.exercise} />)
-
-  if (active) {
-    children.push(<CurrentExercise key='current' event={active}
-      finished={() => { setEvents(evs => [...evs]); setActive(null) }} />)
-  } else if (!workout) {
-    children.push(<SelectWorkout key='select-workout' config={config}
-      select={workout => setWorkout(config.workouts[workout])} />)
-  } else if (workout.length) {
-    children.push(<SelectExercise key='select-exercise' config={config}
-      workout={workout || []} select={(idx, sec) => postTo(
-        'events',
-        { spanid: span.id, duration_s: sec, exercise: workout[idx] },
-        ev => setEvents(evs => [...evs, ev]))}
-      />)
+  const addFromWorkout = key => () => {
+    setTargets(cur => [
+      ...cur,
+      ...config.workouts[key].map(n => ({
+        id: config.exercises[config.nameToId[n]].id,
+      }))
+    ])
+    setShowWorkouts(false)
   }
 
-  return <div className='workout'>
-    <When utc={events[0].utc} offset={events[0].offset} />
-    <div className='container'>
-      <Vitals vitals={events[0].vitals} />
-      {children}
+  const thumbnail = ex => {
+    if (!ex.howto) return null
+    return '📺'
+    const code = ex.howto.split('/')[3].split('?')[0]
+    const src = `https://img.youtube.com/vi/${code}/maxresdefault.jpg`
+    return <img src={src} />
+  }
+
+  const updateExercise = (idx, attr) => value => setTargets(cur => [
+    ...cur.slice(0, idx),
+    { ...cur[idx], [attr]: value },
+    ...cur.slice(idx + 1)
+  ])
+
+  useEffect(() => { apiRead('config').then(setConfig) }, [])
+
+  useEffect(() => { if (config) { addExercise(4)(); addExercise(5)() } }, [config])
+
+  if (!config) return null
+
+  return (
+    <div className='workout new container'>
+      <h1>
+        <span>Workout Goals</span>
+        <span className='sep'></span>
+        {targets.length > 0 ? <button className='start' onClick={start}>⏱️ Start!</button> : null}
+      </h1>
+
+      {targets.length > 1 ? (
+        <>
+          <span className={`toggle ${shuffle ? 'toggled' : ''}`}
+                onClick={() => setShuffle(r => !r)}></span><span>Shuffle</span>
+        </>) : null}
+
+      {targets.length > 0 ? (
+        <>
+          <span className={`toggle ${repeat ? 'toggled' : ''}`}
+                onClick={() => setRepeat(r => !r)}></span><span>Repeat</span>
+        </>) : null}
+
+      {targets.length > 0 ? (
+        <table className='goals'>
+          <thead>
+            <tr><td></td><th>Exercise</th><th>Resistance</th><th>Reps</th><th>Duration</th><td></td></tr>
+          </thead>
+          <tbody>{targets.map((ex, i) => (
+            <tr key={`${ex.id}-${i}`}>
+              <td>{shuffle ? null : <span>☷</span>}</td>
+              <td>{config.exercises[ex.id].name}</td>
+              <Cell key='resistance'
+                    value={ex.resistance}
+                    update={updateExercise(i, 'resistance')} />
+              <Cell key='reps'
+                    value={ex.reps}
+                    parse={parseInt}
+                    update={updateExercise(i, 'reps')} />
+              <Cell key='duration_s'
+                    value={ex.duration_s}
+                    format={value => value ? (dayjs.duration(1000 * value)
+                                              .toISOString()
+                                              .replace(/[PT]/g, '')
+                                              .toLowerCase()
+                                              .replace(/([ymdhm])/g, '$1 ')) : ''}
+                    parse={value => dayjs.duration(
+                      /^\d+$/.test(value)
+                        ? `PT${value}S`
+                        : `PT${value.replace(/ /g, '').toUpperCase()}`
+                    ).as('s')}
+                    update={updateExercise(i, 'duration_s')} />
+              <td><button className='remove'
+                          onClick={() => setTargets(cur => [
+                            ...cur.slice(0, i),
+                            ...cur.slice(i + 1),
+                          ])}>×</button></td>
+            </tr>))}
+          </tbody>
+        </table>) : null}
+
+      {showWorkouts ? (<>
+        <h2>Copy from another workout...</h2>
+        <ul className='other-workouts'>{Object.keys(config.workouts).map(key => (
+          config.workouts[key].length < 2 ? null : (
+            <li key={key}>
+              <button className='add' onClick={addFromWorkout(key)}>+</button>
+              <span className='name'>{key}</span>
+              {config.workouts[key].map(n => <span key={n} className='exercise'>{n}</span>)}
+            </li>
+          )))}</ul>
+      </>) : null}
+
+      <h2>Add individual exercises...</h2>
+      <ul className='tags'>{Object.keys(config.tagToIds).sort().map(tag => (
+        <li key={tag}
+            className={`tag ${tag === activeTag ? 'active' : ''}`}
+            onClick={() => setActiveTag(tag)}>{tag}</li>
+      ))}
+      </ul>
+      <ul className='exercises'>{
+        Object
+          .values(config.exercises)
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(ex => (
+            ex.tags.filter(t => t === activeTag).length ? (
+              <li key={ex.id}>
+                <button className='add' onClick={addExercise(ex.id)}>+</button>
+                <span className='name'>{ex.name}</span>
+              </li>
+            ) : null))}</ul>
     </div>
-  </div>
+  )
 }
+
+
+const Cell = ({ value, format, parse, update }) => {
+  const [isEditing, setIsEditing] = useState(false)
+  const f = format ? format : (v => v)
+  const p = parse ? parse : (v => v)
+  return <td>{(
+    isEditing
+      ? <input autoFocus
+               onFocus={e => e.target.select()}
+               onBlur={e => { setIsEditing(false); update(p(e.target.value)) }}
+               defaultValue={f(value)} />
+      : <span onClick={() => setIsEditing(true)}>{value ? f(value) : '---'}</span>
+  )}</td>
+}
+
+
+const Existing = () => {
+  const id = useParams().id
+  const history = useHistory()
+  const [workout, setWorkout] = useState(null)
+
+  useEffect(() => {
+    apiRead(`workout/${id}`).then(setWorkout).catch(err => {
+      console.log(err)
+      history.replace('/')
+    })
+  }, [id])
+
+  console.log(workout)
+
+  return <div className='workout container'>{workout?.id}</div>
+}
+
 
 const formatTime = (s, long) => {
   if (s < 91 && !long) return `${roundTenths(s)}s`
@@ -76,6 +198,7 @@ const formatTime = (s, long) => {
   const mins = `${Math.floor(s / 60)}m`
   return [`${Math.floor(s / 3600)}h`, mins, secs].join(' ')
 }
+
 
 const CompletedExercise = ({ exercise }) => {
   return <div className='exercise'>
