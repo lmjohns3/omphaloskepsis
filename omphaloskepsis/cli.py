@@ -2,12 +2,12 @@ import bcrypt
 import click
 import os
 import re
-
-from .accounts import Account, Password
-
+import time
+import yaml
 
 def _expand(s):
     return os.path.abspath(os.path.expandvars(os.path.expanduser(s)))
+
 
 @click.group()
 @click.option('--db', default='', metavar='FILE',
@@ -18,51 +18,45 @@ def cli(ctx, db):
 
 
 def _init_account(sess, email):
+    from .accounts import Account, Email, Password
 
-    def parse_date(s):
-        if not re.match(r'[12]\d\d\d-\d\d?-\d\d?', s):
-            raise click.Abort()
-        return s
+    password = click.prompt(
+        f'Password for {email}', hide_input=True, confirmation_prompt=False)
 
-    def parse_sex(s):
-        if s.lower() not in 'mfo':
-            raise click.Abort()
-        return s.upper()
-
-    print(f'-- Adding account {email} --')
-    name = click.prompt(f'Display name for {email}')
-    raw_password = click.prompt(
-        f'Password for {email}', hide_input=True, confirmation_prompt=True)
-    hashed_password = bcrypt.hashpw(raw_password.encode('utf8'), bcrypt.gensalt())
-    bday = click.prompt(f'Birthday for {email} (YYYY-MM-DD)', value_proc=parse_date)
-    is_male = 'M' == click.prompt(
-        f'Sex of {email} for heart-rate calculations (M/F/O)', value_proc=parse_sex)
-
-    sess.add(Account(
-        email=email,
-        name=name,
-        password=Password(password=hashed_password.decode('utf8')),
-        birthday=bday,
-        is_male=is_male))
+    sess.add(Account(emails=[Email(email=email, validated_utc=time.time())],
+                     password=Password(password=bcrypt.hashpw(
+                         password.encode('utf8'), bcrypt.gensalt()))))
     sess.commit()
 
 
 @cli.command()
 @click.option('--load', default='', metavar='FILE',
               help='Import data from FILE containing older database.')
+@click.option('--config', metavar='FILE',
+              help='Load config from this file.')
 @click.argument('account', nargs=-1)
 @click.pass_context
-def init(ctx, load, account):
+def init(ctx, load, config, account):
     import sqlalchemy
-    from .events import Note, Vitals
-    from .spans import Span
-    from .db import Model
+    from . import db, snapshots, workouts
 
     engine = sqlalchemy.create_engine(f'sqlite:///{ctx.obj["db"]}')
-    Model.metadata.create_all(engine)
+    db.Model.metadata.create_all(engine)
+
     sess = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=False)()
+
+    if config:
+        with open(config) as handle:
+            static = yaml.load(handle, Loader=yaml.CLoader)
+        for name, exercise in static.get('exercises', {}).items():
+            sess.add(workouts.Exercise(
+                name=name,
+                howto=exercise.get('howto'),
+                tags=set(filter(None, [exercise.get('group')]))))
+
     for email in account:
         _init_account(sess, email)
+
     sess.commit()
 
 
@@ -76,11 +70,13 @@ def init(ctx, load, account):
 @click.option('--debug/--no-debug', default=False)
 @click.option('--secret', default='', metavar='S',
               help='Use S for a secret session key.')
+@click.option('--domain', default='localhost', metavar='D',
+              help='Only accept session cookies at this domain.')
 @click.pass_context
-def serve(ctx, host, port, config, debug, secret):
+def serve(ctx, host, port, config, debug, secret, domain):
     from .serve import create_app
     create_app(
-        ctx.obj['db'], debug, secret
+        ctx.obj['db'], debug, secret, domain=domain, config_path=config,
     ).run(
         host=host, port=port, debug=debug, threaded=False, processes=1 if debug else 2
     )

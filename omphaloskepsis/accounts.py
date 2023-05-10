@@ -1,67 +1,118 @@
+import base64
+import json
 import pendulum
+import random
 import sqlalchemy
-import uuid
+import struct
+import time
 
 from . import db
+
+
+def encode_id(x):
+    return base64.b64encode(struct.pack('>q', x))[:-1]
+
+def decode_id(x):
+    return struct.unpack('>q', base64.b64decode(x + b'='))[0]
 
 
 class Account(db.Model):
     __tablename__ = 'accounts'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, default=lambda: random.getrandbits(63))
 
-    uid = db.Column(db.String(40), default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
-
-    email = db.Column(db.String(80), unique=True)
-
-    name = db.Column(db.String(80))
-    birthday = db.Column(db.String(10))
-    is_male = db.Column(db.Integer)
-    is_active = db.Column(db.Integer, default=1)
-
-    def __repr__(self):
-        return self.uid
+    # This is a JSON-encoded blob containing account settings.
+    config = db.Column(db.LargeBinary)
 
     @property
     def age_y(self):
         return pendulum.parse(self.birthday).age if self.birthday else None
 
     @property
-    def hr_max(self):
+    def heart_rate_max_bpm(self):
         # Many fits to experimental "max hr" data -- average a few of them.
         # https://www.trailrunnerworld.com/maximum-heart-rate-calculator/
         age = self.age_y
-        male = self.is_male
-        return None if age is None or is_male is None else (
-            220 - age +
-            217 - 0.85 * age +
-            206.9 - 0.67 * age +
-            (202 - 0.55 * age) if is_male else (216 - 1.09 * age)
-        ) / 4
+        if age is None:
+            return None
+        models = [220 - age, 217 - 0.85 * age, 206.9 - 0.67 * age]
+        if self.is_male is not None:
+            models.append(202 - 0.55 * age if self.is_male else 216 - 1.09 * age)
+        return sum(models) / len(models)
+
+    def to_dict(self):
+        return dict(
+            config=self.config,
+            emails=[e.to_dict() for e in self.emails],
+            keys=[k.to_dict() for k in self.keys],
+        )
+
+
+class Email(db.Model):
+    __tablename__ = 'emails'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    created_utc = db.Column(db.Integer, default=time.time, nullable=False)
+    last_use_utc = db.Column(db.Integer)
+
+    account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
+    account = sqlalchemy.orm.relationship(Account, backref='emails', lazy='selectin')
+
+    email = db.Column(db.String(80), unique=True)
+
+    validation = db.Column(db.String(128))
+    validated_utc = db.Column(db.Integer, index=True)
+
+    blocked_utc = db.Column(db.Integer, index=True)
+
+    def to_dict(self):
+        return dict(
+            id=self.id,
+            created_utc=self.created_utc,
+            last_use_utc=self.last_use_utc,
+            email=self.email,
+        )
 
 
 class Password(db.Model):
     __tablename__ = 'passwords'
 
     id = db.Column(db.Integer, primary_key=True)
-    
-    account_id = db.Column(db.Integer, db.ForeignKey(
-        'accounts.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False)
-    account = sqlalchemy.orm.relationship(
-        Account, backref=sqlalchemy.orm.backref('password', uselist=False), uselist=False)
 
-    password = db.Column(db.String(80))
-    failure_count = db.Column(db.Integer, default=0)
+    created_utc = db.Column(db.Integer, default=time.time, nullable=False)
+    last_use_utc = db.Column(db.Integer)
+
+    account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
+    account = db.OneToOneRelationship(Account, 'password')
+
+    password = db.Column(db.LargeBinary)
+    failures = db.Column(db.Float, default=0)
 
 
-class Credential(db.Model):
-    __tablename__ = 'credentials'
+class Key(db.Model):
+    __tablename__ = 'keys'
 
     id = db.Column(db.Integer, primary_key=True)
 
-    account_id = db.Column(db.Integer, db.ForeignKey(
-        'accounts.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False)
-    account = sqlalchemy.orm.relationship(Account, backref='credentials')
+    created_utc = db.Column(db.Integer, default=time.time, nullable=False)
+    last_use_utc = db.Column(db.Integer)
 
-    credential_id = db.Column(db.String, unique=True, nullable=False)
-    credential_public_key = db.Column(db.LargeBinary, nullable=False)
+    account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
+    account = sqlalchemy.orm.relationship(Account, backref='keys', lazy='selectin')
+
+    description = db.Column(db.String)
+    keyid = db.Column(db.String, unique=True, nullable=False)
+    pubkey = db.Column(db.LargeBinary, nullable=False)
+    counter = db.Column(db.Integer, nullable=False)
+    challenge = db.Column(db.LargeBinary)
+
+    def to_dict(self):
+        return dict(
+            id=self.id,
+            created_utc=self.created_utc,
+            last_use_utc=self.last_use_utc,
+            description=self.description,
+            keyid=self.keyid,
+            pubkey=self.pubkey,
+        )
