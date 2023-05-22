@@ -52,7 +52,7 @@ def init(ctx, load, config, account):
             sess.add(workouts.Exercise(
                 name=name,
                 howto=exercise.get('howto'),
-                tags=set(filter(None, [exercise.get('group')]))))
+                tags=exercise.get('tags', ())))
 
     for email in account:
         _init_account(sess, email)
