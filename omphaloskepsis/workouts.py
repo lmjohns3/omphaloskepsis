@@ -47,7 +47,7 @@ class Workout(db.Model):
         return dict(
             id=self.id,
             goals=json.loads(self.goals),
-            collection_id=self.collection_id,
+            collection=self.collection.to_dict(),
             sets=[s.to_dict() for s in self.sets],
         )
 

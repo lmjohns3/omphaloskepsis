@@ -23,7 +23,7 @@ class Collection(db.Model):
         return dict(
             id=self.id,
             tags=sorted(self.tags),
-            snapshot_ids=[s.id for s in self.snapshots],
+            snapshots=[s.to_dict() for s in self.snapshots],
             workout_id=self.workout.id if self.workout else None,
         )
 
@@ -35,6 +35,10 @@ class Snapshot(db.Model):
 
     account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
     account = sqlalchemy.orm.relationship(Account, backref='snapshots', uselist=False)
+
+    collection_id = db.Column(db.Integer, db.CascadeForeignKey('collections'))
+    collection = sqlalchemy.orm.relationship(
+        Collection, backref='snapshots', lazy='selectin', uselist=False)
 
     # Unix timestamp and local time zone.
     utc = db.Column(db.Integer, index=True, nullable=False)
@@ -58,16 +62,12 @@ class Snapshot(db.Model):
     glucose_mmol_l = db.Column(db.Float)
     lactate_mmol_l = db.Column(db.Float)
 
-    # Emotional state. Range: (not present) 0 <---> 1 (fully present)
-    happy = db.Column(db.Float)
-    sad = db.Column(db.Float)
-    angry = db.Column(db.Float)
-    afraid = db.Column(db.Float)
-    mood = db.Column(db.Float)  # Overall mood: negative (-1) <---> (+1) positive.
-
-    collection_id = db.Column(db.Integer, db.CascadeForeignKey('collections'))
-    collection = sqlalchemy.orm.relationship(
-        Collection, backref='snapshots', lazy='selectin', uselist=False)
+    # Emotional state.
+    joy = db.Column(db.Float)
+    fear = db.Column(db.Float)
+    sadness = db.Column(db.Float)
+    anger = db.Column(db.Float)
+    mood = db.Column(db.Float)
 
     @property
     def bmi(self):
@@ -81,26 +81,26 @@ class Snapshot(db.Model):
                 if validate(value):
                     setattr(self, attr, value)
 
-        validate('utc', float, lambda v: v > 0)
-        validate('tz', str, lambda v: len(v) < 80 and re.match(r'\w+/\w+', v) and pendulum.now(v))
+        validate('utc', int, lambda v: v > 0)
+        validate('tz', str, lambda v: len(v) < 80 and re.match(r'^\w+/\w+$', v) and pendulum.now(v))
         validate('lat', float, lambda v: -90 <= v <= 90)
         validate('lng', float, lambda v: -180 <= v <= 180)
-        validate('note', str, lambda v: v)
+        validate('note', str, lambda v: True)
 
-        validate('height_cm', float, lambda v: 0 < v < 400)
-        validate('weight_kg', float, lambda v: 0 < v < 1000)
+        validate('height_cm', float, lambda v: 0 < v < 300)
+        validate('weight_kg', float, lambda v: 0 < v < 300)
         validate('body_temp_degc', float, lambda v: 0 < v < 100)
-        validate('heart_rate_bpm', float, lambda v: 0 < v < 1000)
-        validate('blood_pressure_mmhg', float, lambda v: 0 < v < 1000000)
+        validate('heart_rate_bpm', float, lambda v: 0 < v < 300)
+        validate('blood_pressure_mmhg', float, lambda v: 1000 < v < 1000000)
         validate('blood_oxygen_spo2_pct', float, lambda v: 0 < v <= 100)
-        validate('vo2_max_ml_kg_min', float, lambda v: 0 < v < 1000)
+        validate('vo2_max_ml_kg_min', float, lambda v: 0 < v < 300)
         validate('glucose_mmol_l', float, lambda v: v > 0)
         validate('lactate_mmol_l', float, lambda v: v > 0)
 
-        validate('happy', float, lambda v: 0 <= v <= 1)
-        validate('sad', float, lambda v: 0 <= v <= 1)
-        validate('angry', float, lambda v: 0 <= v <= 1)
-        validate('afraid', float, lambda v: 0 <= v <= 1)
+        validate('joy', float, lambda v: 0 <= v <= 1)
+        validate('fear', float, lambda v: 0 <= v <= 1)
+        validate('sadness', float, lambda v: 0 <= v <= 1)
+        validate('anger', float, lambda v: 0 <= v <= 1)
         validate('mood', float, lambda v: -1 <= v <= 1)
 
         if 'walk_time_min' in data and 'walk_heart_rate_bpm' in data:
@@ -110,26 +110,16 @@ class Snapshot(db.Model):
                 self.set_vo2_max_from_mile_hr(walk_time_min, heart_rate_bpm)
 
     def to_dict(self):
-        return dict(
-            id=self.id,
-            utc=self.utc,
-            tz=self.tz,
-            lat=self.lat,
-            lng=self.lng,
-            note=self.note,
-            height_cm=self.height_cm,
-            weight_kg=self.weight_kg,
-            vo2_max_ml_kg_min=self.vo2_max_ml_kg_min,
-            heart_rate_bpm=self.heart_rate_bpm,
-            blood_pressure_mmhg=self.blood_pressure_mmhg,
-            body_temp_degc=self.body_temp_degc,
-            happy=self.happy,
-            sad=self.sad,
-            angry=self.angry,
-            afraid=self.afraid,
-            mood=self.mood,
-            collection_id=self.collection_id,
-        )
+        fields = {attr: getattr(self, attr) for attr in (
+            'id utc tz lat lng note mood joy fear sadness anger height_cm weight_kg '
+            'body_temp_degc heart_rate_bpm blood_pressure_mmhg blood_oxygen_spo2_pct '
+            'vo2_max_ml_kg_min glucose_mmol_l lactate_mmol_l '
+        ).strip().split()}
+        if self.collection_id:
+            fields['collection_id'] = self.collection_id
+            if self.collection.workout:
+                fields['workout_id'] = self.collection.workout.id
+        return fields
 
     def set_vo2_max_from_resting_hr(self, heart_rate_bpm):
         # HR fraction method
