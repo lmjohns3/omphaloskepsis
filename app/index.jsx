@@ -15,9 +15,6 @@ import './color.styl'
 import './common.styl'
 
 
-const Interstitial = () => <div className='container'>Hold on a sec...</div>
-
-
 const App = () => {
   const history = useHistory()
   const location = useLocation()
@@ -29,7 +26,10 @@ const App = () => {
     } else {
       apiRead('account')
         .then(setAccount)
-        .catch(() => history.replace('/login/'))
+        .catch(() => history.push(
+          location.search ?
+            location : location.pathname.startsWith('/log') ?
+            '/login/' : `/login/?then=${encodeURI(location.pathname)}`))
     }
   }, [account])
 
@@ -43,7 +43,7 @@ const App = () => {
           <li><Link title='Log Out' to='/logout/'>🚪</Link></li>
         </ul>
       </nav>
-      <Route exact path='/'><Interstitial /></Route>
+      <Route exact path='/'><div className='container'>Hold on a sec...</div></Route>
       <Route path='/account/'><Account /></Route>
       <Route path='/login/'><Login /></Route>
       <Route path='/logout/'><Logout /></Route>

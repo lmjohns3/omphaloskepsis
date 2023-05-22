@@ -1,5 +1,5 @@
 import React, { useEffect, useContext, useRef, useState } from 'react'
-import { useHistory } from 'react-router-dom'
+import { useHistory, useLocation } from 'react-router-dom'
 
 import { apiPost } from './api.jsx'
 import { AccountContext } from './account.jsx'
@@ -12,6 +12,7 @@ const validEmailPattern = new RegExp(/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z
 
 const Login = () => {
   const history = useHistory()
+  const location = useLocation()
   const emailInput = useRef(null)
   const passwordInput = useRef(null)
   const [error, setError] = useState(null)
@@ -38,7 +39,7 @@ const Login = () => {
       .then(res => {
         document.getElementById('csrf-token').setAttribute('content', res.csrf)
         setAccount(res.account)
-        history.push('/timeline/')
+        history.push(location.search.replace(/.*\bthen=([^&]+).*/, '$1') || '/timeline/')
       })
       .catch(err => {
         setPassword('')
