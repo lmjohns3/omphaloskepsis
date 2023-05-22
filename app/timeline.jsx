@@ -100,18 +100,18 @@ const Timeline = () => {
   const [groups, setGroups] = useState({ days: {}, collections: {} })
 
   useEffect(() => {
-    const dgroups = {}, cgroups = {}
+    const dayGroups = {}, colls = {}
     Object.values(cache).forEach(snapshot => {
       const dayKey = keyForDay(dayjs.unix(snapshot.utc).tz('UTC'))
-      if (!(dayKey in dgroups)) dgroups[dayKey] = []
-      dgroups[dayKey].push(snapshot.id)
+      if (!(dayKey in dayGroups)) dayGroups[dayKey] = []
+      dayGroups[dayKey].push(snapshot.id)
       const cid = snapshot.collection_id
       if (cid) {
-        if (!(cid in cgroups)) cgroups[cid] = []
-        cgroups[cid].push(snapshot.id)
+        if (!(cid in colls)) colls[cid] = []
+        colls[cid].push(snapshot.id)
       }
     })
-    setGroups({ days: dgroups, collections: cgroups })
+    setGroups({ days: dayGroups, collections: colls })
   }, [cache])
 
   return (
@@ -183,7 +183,7 @@ const Day = ({ yyyymmdd, refresh, cache, groups, updateCache }) => {
 
   snapshots.forEach(snapshot => {
     const cid = snapshot.collection_id
-    if (cid && !seenCollections[cid]) {
+    if (cid && !seenCollections[cid] && groups.collections[cid]) {
       seenCollections[cid] = true
       children.push(<Collection key={`collection-${cid}`}
                                 left={left}
@@ -249,9 +249,9 @@ const Now = ({ updateCache }) => {
             style={{left: pct(now.startOf('d'), now)}}>
       {isActivated ? (
         <>
-          <span onClick={() => create('snapshot')}>🗒️️</span>
-          <span onClick={() => create('collection', { tags: ['sleep'] })}>💤</span>
-          <span onClick={() => history.push('/workout/new/')}>🏋️</span>
+          <span id='add-snapshot' onClick={() => create('snapshot')}>🗒️️</span>
+          <span id='add-sleep' onClick={() => create('collection', { tags: ['sleep'] })}>💤</span>
+          <span id='add-workout' onClick={() => history.push('/workout/new/')}>🏋️</span>
         </>
       ): '+'}
     </button>

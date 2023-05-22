@@ -47,6 +47,24 @@
     .add
       position absolute
       top 0.25rem
+      z-index 1000
+
+      span
+        background hsl(220deg, 80%, 90%)
+        border-radius 0.3em
+        font-size 0.9em
+        left 0
+        line-height 1.389
+        height 1.389em
+        position absolute
+        top 0
+        width 1.389em
+
+      #add-snapshot
+        left -1.5em
+
+      #add-workout
+        left 1.5em
 
     .snapshot
       align-items stretch
@@ -54,6 +72,7 @@
       cursor pointer
       display flex
       height unquote('calc(1.5rem + 4px)')
+      margin-left -3rem
       position absolute
       top unquote('calc((2rem - (1.5rem + 4px)) / 2)')
       width 8rem
@@ -104,7 +123,7 @@
           left -2.7rem
 
       &.activated
-        z-index 100
+        z-index 1001
 
         .button
           z-index 100
