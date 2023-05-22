@@ -25,20 +25,21 @@
     td, th
       padding 0 0.5em
 
+    input
+      font-size 0.8em
+      width 4em
+
     tbody
-      td
-        &:first-child
-          width 2em
-
-        input
-          font-size 0.8em
-          width 4em
-
       tr:nth-child(odd) td
         background hsl(0deg, 0%, 95%)
+        &:last-child
+          background transparent
 
-      &:first-child, &:last-child
-        background transparent
+      tr.defaults td
+        background hsl(0deg, 0%, 100%)
+        color hsl(0deg, 0%, 70%)
+        &:last-child
+          background transparent
 
     button.remove
       font-size 0.8em

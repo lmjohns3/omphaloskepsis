@@ -24,12 +24,14 @@ const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
     toner: 'http://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png',
     watercolor: 'https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png'
   }
-  return <Leaflet center={[lat, lng]}
-                  zoom={zoom || 10}
-                  onViewportChanged={onChanged ? vp => onChanged(vp.center) : null}>
-    <TileLayer url={urls[tiles || 'imagery']}
-               attribution={attributions[tiles || 'imagery']} />
-  </Leaflet>
+  return (
+    <Leaflet center={[lat, lng]}
+             zoom={zoom || 10}
+             onViewportChanged={onChanged ? vp => onChanged(vp.center) : null}>
+      <TileLayer url={urls[tiles || 'imagery']}
+                 attribution={attributions[tiles || 'imagery']} />
+    </Leaflet>
+  )
   // {false ? <Marker position={[lat, lng]}><Popup>Here!</Popup></Marker> : null}
 }
 
