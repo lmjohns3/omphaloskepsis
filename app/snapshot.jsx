@@ -18,7 +18,7 @@ const Snapshot = () => {
     showdown.setOption('literalMidWordAsterisks', true)
   }, [])
 
-  const id = useParams().id
+  const id = parseInt(useParams().id, 36)
   const history = useHistory()
   const [snapshot, setSnapshot] = useState(null)
 

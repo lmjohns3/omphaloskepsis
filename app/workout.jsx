@@ -65,7 +65,7 @@ const NewWorkout = () => {
 
   const startWorkout = () => apiCreate(
     'workouts', { tags: ['workout'], goals }
-  ).then(res => history.push(`/workout/${res.id}/`))
+  ).then(res => history.push(`/workout/${res.id.toString(36)}/`))
 
   return (
     <div className='workout new container'>
@@ -167,7 +167,7 @@ const Cell = ({ value, format, parse, update }) => {
 
 
 const ExistingWorkout = () => {
-  const id = useParams().id
+  const id = parseInt(useParams().id, 36)
   const history = useHistory()
   const [config, setConfig] = useState(null)
   const [workout, setWorkout] = useState(null)

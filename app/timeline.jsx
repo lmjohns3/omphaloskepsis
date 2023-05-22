@@ -234,7 +234,7 @@ const Now = ({ updateCache }) => {
 
   const create = (dtype, args) => {
     console.log(dtype, args)
-    apiCreate(`${dtype}s`, args).then(res => history.push(`/${dtype}/${res.id}/`))
+    apiCreate(`${dtype}s`, args).then(res => history.push(`/${dtype}/${res.id.toString(36)}/`))
   }
 
   useEffect(() => {
@@ -278,7 +278,7 @@ const Collection = ({ left, collectionId, snapshots, addSnapshot, removeSnapshot
                      .replace(/PT/, '')
                      .replace(/\d+S$/, '')  // Trim off seconds.
                      .toLowerCase()}
-         onClick={() => history.push(`/collection/${collectionId}/`)}
+         onClick={() => history.push(`/collection/${collectionId.toString(36)}/`)}
          style={{ left: pct(left, first), width: pct(first, wakeup) }}></div>
     <div key={`collection-${collectionId}-wakeup`}
          className='snapshot'
@@ -286,7 +286,7 @@ const Collection = ({ left, collectionId, snapshots, addSnapshot, removeSnapshot
          onClick={() => apiCreate('snapshots', {
            utc: wakeup.unix(),
            collectionid: collectionId,
-         }).then(res => history.push(`/snapshot/${res.id}/`))}>
+         }).then(res => history.push(`/snapshot/${res.id.toString(36)}/`))}>
       <div className='marker wakeup'>⏰</div>
     </div>
   </>
@@ -320,9 +320,9 @@ const Snapshot = ({ left, snapshot, updateCache, refresh }) => {
   }
 
   const doEdit = () => history.push(
-    snapshot.workout_id ? `/workout/${snapshot.workout_id}/`
-      : snapshot.collection_id ? `/collection/${snapshot.collection_id}/`
-      : `/snapshot/${snapshot.id}/`)
+    snapshot.workout_id ? `/workout/${snapshot.workout_id.toString(36)}/`
+      : snapshot.collection_id ? `/collection/${snapshot.collection_id.toString(36)}/`
+      : `/snapshot/${snapshot.id.toString(36)}/`)
 
   const onDragStart = e => {
     if (e.button !== 0) return

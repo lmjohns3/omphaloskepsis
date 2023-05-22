@@ -24,13 +24,7 @@ const Login = () => {
 
   useEffect(() => { setIsValidEmail((validEmailPattern.test(email))) }, [email])
 
-  useEffect(() => {
-    if (passwordInput.current && !needsEmail) passwordInput.current.focus()
-  }, [passwordInput.current, needsEmail])
-
-  useEffect(() => {
-    if (emailInput.current && needsEmail) emailInput.current.focus()
-  }, [emailInput.current, needsEmail])
+  useEffect(() => { (needsEmail ? emailInput : passwordInput).current.focus() }, [needsEmail])
 
   const onSubmit = e => {
     e.preventDefault()
