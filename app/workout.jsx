@@ -21,7 +21,7 @@ const NewWorkout = () => {
   const [goals, setGoals] = useState([])
   const [defaults, setDefaults] = useState({})
   const [showWorkouts, setShowWorkouts] = useState(true)
-  const [activeTag, setActiveTag] = useState('cardio')
+  const [activeTag, setActiveTag] = useState(null)
 
   useEffect(() => { apiRead('config').then(setConfig) }, [])
 
@@ -129,18 +129,22 @@ const NewWorkout = () => {
       </>) : null}
 
       <h2>Add individual exercises...</h2>
-      <ul className='tags'>{Object.keys(config.tagToIds).sort().map(tag => (
-        <li key={tag}
-            className={`tag ${tag === activeTag ? 'active' : ''}`}
-            onClick={() => setActiveTag(tag)}>{tag}</li>
-      ))}
+      <ul className='tags'>
+        <li key='all'
+            className={`tag ${activeTag ? '' : 'active'}`}
+            onClick={() => setActiveTag(null)}>All</li>
+        {Object.keys(config.tagToIds).sort().map(tag => (
+          <li key={tag}
+              className={`tag ${tag === activeTag ? 'active' : ''}`}
+              onClick={() => setActiveTag(tag)}>{tag}</li>
+        ))}
       </ul>
       <ul className='exercises'>{
         Object
           .values(config.exercises)
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(ex => (
-            ex.tags.filter(t => t === activeTag).length ? (
+            ex.tags.filter(t => t === activeTag).length + (activeTag === null) ? (
               <li key={ex.id}>
                 <button className='add' onClick={addExercise(ex.id)}>+</button>
                 <span className='name'>{ex.name}</span>
