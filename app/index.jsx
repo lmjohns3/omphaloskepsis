@@ -27,9 +27,9 @@ const App = () => {
       apiRead('account')
         .then(setAccount)
         .catch(() => history.push(
-          location.search ?
-            location : location.pathname.startsWith('/log') ?
-            '/login/' : `/login/?then=${encodeURI(location.pathname)}`))
+          location.search ? location :
+            location.pathname.startsWith('/log') ? '/login/' :
+            `/login/?then=${encodeURI(location.pathname)}`))
     }
   }, [account])
 
