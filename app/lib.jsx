@@ -107,11 +107,11 @@ export default {
   },
 
   formatDuration: s => {
-    return dayjs.duration(1000 * s)
+    return dayjs.duration(parseInt(1000 * s))
       .toISOString()
       .replace(/[PT]/g, '')
       .toLowerCase()
-      .replace(/([ymdhm])/g, '$1 ')
+      .replace(/([ymdh])/ig, '$1 ')
       .replace(/\s+$/, '')
   },
 
@@ -120,4 +120,14 @@ export default {
       ? `PT${s}S`
       : `PT${s.replace(/\s+/g, '').toUpperCase()}`
   ).as('s'),
+
+  shuffle: arr => {
+    for (let i = 0; i < arr.length; i++) {
+      const j = arr.length - 1 - Math.floor(i * Math.random())
+      const t = arr[i]
+      arr[i] = arr[j]
+      arr[j] = t
+    }
+    return arr
+  },
 }
