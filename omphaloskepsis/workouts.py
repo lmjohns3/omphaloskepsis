@@ -16,7 +16,8 @@ class Exercise(db.Model):
 
     name = db.Column(db.String, unique=True, nullable=False)
     about = db.Column(db.String)
-    howto = db.Column(db.String)
+    image = db.Column(db.String)
+    video = db.Column(db.String)
 
     _tags = db.tag_relationship(exercise_tags, 'exercises')
     tags = db.tag_proxy()
@@ -26,7 +27,8 @@ class Exercise(db.Model):
             id=self.id,
             name=self.name,
             about=self.about,
-            howto=self.howto,
+            image=self.image,
+            video=self.video,
             tags=sorted(self.tags)
         )
 
@@ -43,12 +45,17 @@ class Workout(db.Model):
     # A JSON string containing goals for this workout, like a list of target sets.
     goals = db.Column(db.LargeBinary)
 
+    # Times that this workout was created / marked complete.
+    created_utc = db.Column(db.Integer)
+    complete_utc = db.Column(db.Integer)
+
     def to_dict(self):
         return dict(
             id=self.id,
             goals=json.loads(self.goals),
             collection=self.collection.to_dict(),
             sets=[s.to_dict() for s in self.sets],
+            complete_utc=self.complete_utc,
         )
 
 

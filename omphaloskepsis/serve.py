@@ -64,6 +64,8 @@ def _populate_account():
 
 @app.route('/api/snapshots/', methods=['GET'])
 def get_snapshots():
+    if not getattr(flask.request, 'account', None):
+        flask.abort(401)
     now = time.time()
     get = lambda key, days: flask.request.args.get(key, now + 86400 * days)
     return _json(sql.session.query(Snapshot).filter(
@@ -170,8 +172,9 @@ def create_workout():
     collection.update_from(flask.request.json)
     snapshot = Snapshot(account=flask.request.account, collection=collection)
     snapshot.update_from(flask.request.json)
-    encoded = json.dumps(flask.request.json['goals']).encode('utf8')
-    workout = Workout(collection=collection, goals=encoded)
+    workout = Workout(collection=collection,
+                      goals=json.dumps(flask.request.json['goals']).encode('utf8'),
+                      created_utc=flask.request.json['utc'])
     sql.session.add(workout)
     sql.session.commit()
     return flask.jsonify(dict(id=workout.id))
@@ -192,12 +195,13 @@ def create_set(wid):
         flask.abort(404)
     if workout.collection.snapshots[0].account.id != flask.session['aid']:
         flask.abort(403)
-    es = ExerciseSet(exercise_id=flask.request.json['exercise_id'])
+    es = Set(exercise_id=flask.request.json['exercise_id'],
+             start_utc=flask.request.json['utc'])
     workout.sets.append(es)
     sql.session.commit()
     return _json(es)
 
-@app.route('/api/workout/<wid>/sets/<sid>/', methods=['POST'])
+@app.route('/api/workout/<wid>/set/<sid>/', methods=['POST'])
 def update_set(wid, sid):
     es = sql.session.query(Set).join(Workout, Snapshot).filter(Set.id == sid).scalar()
     if not es:
@@ -213,7 +217,7 @@ def update_set(wid, sid):
     sql.session.commit()
     return _json(es)
 
-@app.route('/api/workout/<wid>/sets/<sid>/', methods=['DELETE'])
+@app.route('/api/workout/<wid>/set/<sid>/', methods=['DELETE'])
 def delete_set(wid, eid):
     es = sql.session.query(Set).join(Workout, Snapshot).filter(Set.id == sid).scalar()
     if not es:

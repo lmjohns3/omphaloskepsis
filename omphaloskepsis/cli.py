@@ -17,18 +17,6 @@ def cli(ctx, db):
     ctx.obj = dict(db=_expand(db or os.environ.get('OMPHALOSKEPSIS_DB', '')))
 
 
-def _init_account(sess, email):
-    from .accounts import Account, Email, Password
-
-    password = click.prompt(
-        f'Password for {email}', hide_input=True, confirmation_prompt=False)
-
-    sess.add(Account(emails=[Email(email=email, validated_utc=time.time())],
-                     password=Password(password=bcrypt.hashpw(
-                         password.encode('utf8'), bcrypt.gensalt()))))
-    sess.commit()
-
-
 @cli.command()
 @click.option('--load', default='', metavar='FILE',
               help='Import data from FILE containing older database.')
@@ -38,7 +26,7 @@ def _init_account(sess, email):
 @click.pass_context
 def init(ctx, load, config, account):
     import sqlalchemy
-    from . import db, snapshots, workouts
+    from . import accounts, db, snapshots, workouts
 
     engine = sqlalchemy.create_engine(f'sqlite:///{ctx.obj["db"]}')
     db.Model.metadata.create_all(engine)
@@ -51,11 +39,18 @@ def init(ctx, load, config, account):
         for name, exercise in static.get('exercises', {}).items():
             sess.add(workouts.Exercise(
                 name=name,
-                howto=exercise.get('howto'),
+                about=exercise.get('about'),
+                image=exercise.get('image'),
+                video=exercise.get('video'),
                 tags=exercise.get('tags', ())))
 
     for email in account:
-        _init_account(sess, email)
+        password = click.prompt(
+            f'Password for {email}', hide_input=True, confirmation_prompt=False)
+        sess.add(accounts.Account(
+            emails=[accounts.Email(email=email, validated_utc=time.time())],
+            password=accounts.Password(password=bcrypt.hashpw(
+                password.encode('utf8'), bcrypt.gensalt()))))
 
     sess.commit()
 
