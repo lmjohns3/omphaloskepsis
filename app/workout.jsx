@@ -21,60 +21,48 @@ const ExistingWorkout = () => {
   const history = useHistory()
   const [config, setConfig] = useState(null)
   const [workout, setWorkout] = useState(null)
+  const [activeSet, setActiveSet] = useState(null)
+  const [selected, setSelected] = useState(null)
 
   useEffect(() => { apiRead(`config`).then(setConfig) }, [])
   useEffect(() => { apiRead(`workout/${id}`).then(setWorkout) }, [id])
+  useEffect(() => {
+    if (!workout) return
+    setSelected(workout.sets.length % workout.goals.length)
+    const active = workout.sets.filter(es => !es.end_utc)
+    if (active.length) setActiveSet(active[0])
+  }, [workout])
 
-  console.log(workout)
+  if (!workout || !config || selected === null) return null
 
-  if (!workout || !config) return null
+  const completedExercises = workout.sets.map(es => es.exercise_id)
+  const goal = workout.goals[selected]
 
   return (
     <div className='workout container'>
-      <ul>{workout.goals.map((ex, i) => (
-        <li className='goal' key={`${ex.id}-${i}`}>
-          <span className='name'>{config.exercises[ex.id].name}</span>
-          {ex.resistance ? `${ex.resistance}` : null}
-          {ex.reps ? `${ex.reps}x` : null}
-          {ex.duration_s ? `(${lib.formatDuration(ex.duration_s)})` : null}
-          <button>⏱️ Start!</button>
-        </li>
-      ))}</ul>
-    </div>
-  )
-}
-
-
-const NextSet = ({ span, workout, select, config }) => {
-  const [index, setIndex] = useState(0)
-  const [durationSec, setDurationSec] = useState(90)
-  const current = config?.exercises[workout[index]]
-  const youtube = current?.howto?.replace(/^https:..youtu.be./, '')
-                                 .replace(/t=/, 'start=')
-
-  useEffect(() => {
-    setIndex(Math.floor(workout.length * Math.random()))
-  }, [workout])
-
-  return (
-    <div className='select-exercise'>
-      <h2>
-        <span className='up' onClick={
-                () => setIndex(i => (i - 1) % workout.length)}>🡐</span>
-        <span className='value' onClick={
-                () => setIndex(Math.floor(Math.random() * workout.length))
-              }>{workout[index]}</span>
-        <span className='down' onClick={
-                () => setIndex(i => (i + 1) % workout.length)}>🡒</span>
-      </h2>
-      {youtube
-       ? <iframe width='420' height='315' frameBorder='0'
-                 src={`https://www.youtube.com/embed/${youtube}`}></iframe>
-       : null}
-      <input type='number'
-             value={durationSec}
-             onChange={e => setDurationSec(parseInt(e.target.value))} />sec
-      <button onClick={() => select(index, durationSec)}>Start!</button>
+      {!navigator.bluetooth ? null : <HeartRate />}
+      {!window.Accelerometer ? null : <StepCounter />}
+      {activeSet ? <ActiveSet workout={workout} es={activeSet} /> : (<>
+        <h1 className='next'>
+          <select value={selected} onChange={e => setSelected(e.target.value)}>{
+            workout.goals.map((goal, i) => (
+              <option key={i} value={i}>{config.exercises[goal.id].name}</option>
+            ))
+          }</select>
+          <button className='start' onClick={() => apiCreate(`workout/${id}/sets`, { exercise_id: goal.id }).then(setActiveSet)}>⏱️ Start!</button>
+        </h1>
+        <div className='goal'>
+          Goals:
+          {goal.resistance ? `🪨 ${goal.resistance}` : null}
+          {goal.reps ? `🧮 ${goal.reps}` : null}
+          {goal.duration_s ? `⏲️ ${lib.formatDuration(goal.duration_s)}` : null}
+          <img src={`/static/img/${config.exercises[goal.id].image}`} />
+        </div>
+      </>)}
+      {workout.sets.length ? (<>
+        <h2>Completed</h2>
+        <ul>{workout.sets.map(es => es.end_utc ? <CompletedSet key={es.id} set={es} /> : null)}</ul>
+      </>) : null}
     </div>
   )
 }
@@ -87,34 +75,26 @@ const CompletedSet = ({ es }) => (
       <div className='meter'>
         <span className='label'>Duration</span>
         <span className='emoji'>⏱️</span>
-        <span className='value'>{lib.formatDuration(es.duration_s)}</span>
+        <span className='value'>{lib.formatDuration(es.end_utc - es.start_utc)}</span>
       </div>
-      {!exercise.reps ? null :
-       <Meter value={exercise.reps} attr='reps' label='Reps' emoji='🧮' />}
-      {!exercise.resistance ? null :
-       <Meter value={exercise.resistance} attr='resistance' label='Resistance'
-              emoji='🪨' formats={{ '': null, lb: 1, kg: 1 }} />}
-      {!exercise.distance_m ? null :
-       <Meter value={exercise.distance_m} attr='distance_m' label='Distance'
-              emoji='📍' formats={{ m: null, km: 0.001, mi: 0.0062137 }} />}
-      {!exercise.cadence_hz ? null :
-       <Meter value={exercise.cadence_hz} attr='cadence_hz' label='Cadence'
-              emoji='🚲' formats={{ Hz: null, rpm: 60 }} />}
-      {!exercise.avg_power_w ? null :
-       <Meter value={exercise.avg_power_w} attr='avg_power_w' label='Average Power'
-              emoji='⚡' formats={{ W: null, hp: 0.00134102 }} />}
+      {es.reps ? <Meter value={es.reps} attr='reps' label='Reps' emoji='🧮' /> : null}
+      {es.resistance ? <Meter value={es.resistance} attr='resistance' label='Resistance'
+                              emoji='🪨' formats={{ '': null, lb: 1, kg: 1 }} /> : null}
+      {es.distance_m ? <Meter value={es.distance_m} attr='distance_m' label='Distance'
+                              emoji='📍' formats={{ m: null, km: 0.001, mi: 0.0062137 }} /> : null}
+      {es.cadence_hz ? <Meter value={es.cadence_hz} attr='cadence_hz' label='Cadence'
+                              emoji='🚲' formats={{ Hz: null, rpm: 60 }} /> : null}
+      {es.avg_power_w ? <Meter value={es.avg_power_w} attr='avg_power_w' label='Average Power'
+                               emoji='⚡' formats={{ W: null, hp: 0.00134102 }} /> : null}
     </div>
   </div>
 )
 
 
-const CurrentSet = ({ es, finished }) => {
-  const ex = event.exercise
+const ActiveSet = ({ workout, es, goals }) => {
   const [stepCount, setStepCount] = useState(0)
-  const [rrs, setRrs] = useState(lib.waveletDecode(ex.rr_coeffs, ex.rr_count))
-  const remainingSec = dayjs.utc(event.utc)
-                            .add(ex.duration_s, 's')
-                            .diff(dayjs.utc(), 's')
+  const [rrs, setRrs] = useState(lib.waveletDecode(es.rr_coeffs, es.rr_count))
+  const remainingSec = dayjs.utc() - es.start_utc
   const [preventSleep, setPreventSleep] = useState(remainingSec > 0)
   const nosleep = useNoSleep(preventSleep)
 
@@ -126,11 +106,11 @@ const CurrentSet = ({ es, finished }) => {
   const fields = <>
     <label htmlFor='reps'>Reps</label>
     <input name='reps' type='number' autoFocus
-           onChange={e => { ex.reps = parseInt(e.target.value) }} />
+           onChange={e => { es.reps = parseInt(e.target.value) }} />
     <label htmlFor='resistance'>Resistance</label>
     <input name='resistance' type='number'
-           onChange={e => { ex.resistance = parseFloat(e.target.value) }} />
-    {ex.group !== 'cardio' ? null : <>
+           onChange={e => { es.resistance = parseFloat(e.target.value) }} />
+    {es.group !== 'cardio' ? null : <>
       <label htmlFor='distance_m'>Distance</label>
       <input name='distance_m' type='number' />
       <span className='unit'>m</span>
@@ -150,51 +130,43 @@ const CurrentSet = ({ es, finished }) => {
     setRrs(rr)
   }
 
-  const updateStepCount = () => {
-    ex.reps = (ex.reps || 0) + 1
-    setStepCount(s => s + 1)
-  }
-
   const meters = <>
-    {ex.group === 'cardio'
-      ? <Stopwatch durationSec={ex.duration_s - remainingSec} finished={timeFinished} />
+    {es.group === 'cardio'
+      ? <Stopwatch durationSec={remainingSec} finished={timeFinished} />
       : <Timer durationSec={remainingSec} finished={timeFinished} />}
-    {!navigator.bluetooth ? null : <HeartRate rrs={rrs} setRrs={updateRrs} />}
-    {!window.Accelerometer ? null
-      : <StepCounter stepCount={stepCount} setStepCount={updateStepCount} />}
   </>
 
   return <div className='exercise'>
-    <h2 className='name'>Now: {ex.exercise}</h2>
+    <h2 className='name'>Now: {es.exercise}</h2>
     {remainingSec > 0 ? meters : fields}
   </div>
 }
 
 
 // A Timer counts down from a starting duration to zero.
-const Timer = ({ durationSec, finished }) => {
+const Timer = ({ seconds, finished }) => {
   const [running, setRunning] = useState(true)
-  const [remainingSec, setRemainingSec] = useState(durationSec)
+  const [remaining, setRemaining] = useState(seconds)
 
   useEffect(() => {
     if (running) {
-      const interval = setInterval(() => setRemainingSec(s => s - 0.1), 100)
+      const interval = setInterval(() => setRemaining(s => s - 0.1), 100)
       return () => clearInterval(interval)
     }
   }, [running])
 
   useEffect(() => {
-    if (remainingSec <= 0) {
+    if (remaining <= 0) {
       setRunning(false)
       finished()
     }
-  }, [remainingSec])
+  }, [remaining])
 
   return <div className='timer'
               onClick={() => setRunning(on => !on)}
-              onDoubleClick={() => setRemainingSec(durationSec)}>
+              onDoubleClick={() => setRemaining(seconds)}>
     <span className='emoji'>⏲️</span>
-    <span className='value'>{lib.formatDuration(remainingSec)}</span>
+    <span className='value'>{lib.formatDuration(remaining)}</span>
   </div>
 }
 
@@ -227,38 +199,47 @@ const Stopwatch = ({ durationSec, finished }) => {
 }
 
 
-const StepCounter = ({ stepCount, setStepCount }) => {
-  const acc = new window.Accelerometer({ frequency: 1, referenceFrame: 'device' })
+const StepCounter = () => {
+  const g = 9.81
+  const freqHz = 31
+  const halflifeSec = 0.5
+  const mix = Math.exp(-Math.log(2) / (freqHz * halflifeSec))
+
   const [enabled, setEnabled] = useState(false)
-  const [readings, setReadings] = useState([])
+  const [state, setState] = useState(g)
+  const [stepCount, setStepCount] = useState(0)
 
   useEffect(() => {
     console.log('accelerometer is', enabled ? 'enabled' : 'disabled')
-    if (enabled) {
-      const handler = () => setReadings(arr => {
-        const { x, y, z } = acc
-        const logMag = Math.log(x * x + y * y + z * z) / 2
-        return [...(arr.length > 99 ? arr.slice(1) : arr), logMag]
+    if (!enabled) return
+    const acc = new window.Accelerometer({ frequency: freqHz, referenceFrame: 'device' })
+    const handler = () => {
+      const { x, y, z } = acc
+      const mag = Math.sqrt(x * x + y * y + z * z)
+      setState(s => {
+        const t = mix * s + (1 - mix) * mag
+        if (s < g && t > g + 0.1) setStepCount(c => c + 1)
+        return t
       })
-      acc.addEventListener('reading', handler)
-      acc.addEventListener('error', console.log)
-      acc.start()
-      return () => {
-        acc.stop()
-        acc.removeEventListener('error', console.log)
-        acc.removeEventListener('reading', handler)
-      }
+    }
+    acc.addEventListener('reading', handler)
+    acc.addEventListener('error', console.log)
+    acc.start()
+    return () => {
+      acc.stop()
+      acc.removeEventListener('error', console.log)
+      acc.removeEventListener('reading', handler)
     }
   }, [enabled])
 
-  useEffect(() => {
-    setStepCount(sc => sc + 1)
-  }, [readings])
-
-  return <div className='step-counter' onClick={() => setEnabled(on => !on)}>
-    <span className='emoji'>👟</span>
-    <span className='value'>{stepCount}</span>
-  </div>
+  return (
+    <div className={`step-counter ${enabled ? 'enabled' : 'disabled'}`}
+         onClick={() => setEnabled(on => !on)}
+         onDoubleClick={() => setStepCount(0)}>
+      <span className='emoji'>👟</span>
+      <span className='value'>{stepCount}</span>
+    </div>
+  )
 }
 
 
@@ -281,66 +262,67 @@ const parseHeartRate = data => {
     index += 2
   }
   if (flags & 0x10) {
-    result.rr = []
+    result.rrs = []
     for (; index + 1 < data.byteLength; index += 2) {
-      result.rr.push(data.getUint16(index, /* littleEndian= */true))
+      result.rrs.push(data.getUint16(index, /* littleEndian= */true))
     }
   }
   return result
 }
 
-const HeartRate = ({ rrs, setRrs }) => {
+
+const HeartRate = () => {
   const [enabled, setEnabled] = useState(false)
   const [bluetoothDevice, setBluetoothDevice] = useState(null)
   const [heartRateMonitor, setHeartRateMonitor] = useState(null)
+
+  const [rrs, setRrs] = useState([])
   const [heartRate, setHeartRate] = useState(0)
 
   useEffect(() => {
     console.log('heart rate monitor is', enabled ? 'enabled' : 'disabled')
-    if (enabled) {
-      navigator.bluetooth
-        .requestDevice({ filters: [{ services: ['heart_rate'] }] })
-        .then(device => setBluetoothDevice(device))
-        .catch(console.log)
-      return () => setBluetoothDevice(null)
-    }
+    if (!enabled) return
+    navigator.bluetooth
+      .requestDevice({ filters: [{ services: ['heart_rate'] }] })
+      .then(device => setBluetoothDevice(device))
+      .catch(console.log)
+    return () => setBluetoothDevice(null)
   }, [enabled])
 
   useEffect(() => {
-    if (bluetoothDevice) {
-      bluetoothDevice
-        .gatt.connect()
-        .then(server => server.getPrimaryService('heart_rate'))
-        .then(service => service.getCharacteristic('heart_rate_measurement'))
-        .then(char => setHeartRateMonitor(char))
-        .catch(console.log)
-      return () => setHeartRateMonitor(null)
-    }
+    if (!bluetoothDevice) return
+    bluetoothDevice
+      .gatt.connect()
+      .then(server => server.getPrimaryService('heart_rate'))
+      .then(service => service.getCharacteristic('heart_rate_measurement'))
+      .then(hrm => setHeartRateMonitor(hrm))
+      .catch(console.log)
+    return () => setHeartRateMonitor(null)
   }, [bluetoothDevice])
 
   useEffect(() => {
-    if (heartRateMonitor) {
-      const sample = e => {
-        const data = parseHeartRate(e.target.value)
-        setRrs(rr => [...rr, data.rr])
-        setHeartRate(data.heartRate)
-      }
-      heartRateMonitor.addEventListener('characteristicvaluechanged', sample)
-      heartRateMonitor.startNotifications()
-      return () => {
-        heartRateMonitor.stopNotifications()
-        heartRateMonitor.removeEventListener('characteristicvaluechanged', sample)
-      }
+    if (!heartRateMonitor) return
+    const sample = e => {
+      const data = parseHeartRate(e.target.value)
+      if (data.rrs) setRrs(rrs => [...rrs, ...data.rrs])
+      if (data.heartRate) setHeartRate(data.heartRate)
+    }
+    heartRateMonitor.addEventListener('characteristicvaluechanged', sample)
+    heartRateMonitor.startNotifications()
+    return () => {
+      heartRateMonitor.stopNotifications()
+      heartRateMonitor.removeEventListener('characteristicvaluechanged', sample)
     }
   }, [heartRateMonitor])
 
-  return <div className='heart-rate' onClick={() => setEnabled(on => !on)}>
-    <span className='emoji'>💗</span>
-    <span className='value'>
-      {rrs.length > 0 ? rrs.join('.') : '---'}
-      {heartRate > 0 ? heartRate : '---'}
-    </span>
-  </div>
+  return (
+    <div className={`heart-rate ${enabled ? 'enabled' : 'disabled'}`}
+         onDoubleClick={() => { setRrs([]); setHeartRate(0) }}
+         onClick={() => setEnabled(on => !on)}>
+      <span className='emoji'>💗</span>
+      <span className='value'>{heartRate > 0 ? heartRate : '---'}</span>
+    </div>
+  )
 }
 
 
