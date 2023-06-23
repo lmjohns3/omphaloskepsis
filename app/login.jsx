@@ -13,13 +13,16 @@ const validEmailPattern = new RegExp(/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z
 const Login = () => {
   const history = useHistory()
   const location = useLocation()
+
   const emailInput = useRef(null)
   const passwordInput = useRef(null)
+
   const [error, setError] = useState(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [needsEmail, setNeedsEmail] = useState(true)
   const [isValidEmail, setIsValidEmail] = useState(false)
+
   const { setAccount } = useContext(AccountContext)
 
   useEffect(() => { setIsValidEmail((validEmailPattern.test(email))) }, [email])
@@ -37,7 +40,7 @@ const Login = () => {
       })
       .catch(err => {
         setPassword('')
-        setError('Better luck next time!')
+        setError('Incorrect!')
       })
   }
 
