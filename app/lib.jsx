@@ -26,14 +26,29 @@ const stats = xs => {
   }
 }
 
-// Return an array of sample differences from an array of values xs.
-const diff = xs => xs.map((x, i) => i ? x - xs[i - 1] : 0)
+// Get the sum of values in an array.
+const sum = arr => arr.reduce((acc, x) => acc + x, 0)
+
+// Compute the mean of values in an array.
+const mean = arr => sum(arr) / arr.length
 
 // Return the cumulative sum of an array.
-const cumsum = xs => xs.reduce((acc, x) => [...acc, acc.slice(-1) + x], [0])
+const cumsum = arr => arr.reduce((acc, x) => [...acc, acc.slice(-1) + x], [0])
+
+// Return an array of elementwise differences of values in an array.
+const diff = arr => arr.map((x, i) => i ? x - arr[i - 1] : 0)
+
+// Get the last element of an array.
+const last =  arr => { return arr.length > 0 ? arr[arr.length - 1] : null }
 
 
 export default {
+
+  sum,
+  mean,
+  cumsum,
+  diff,
+  last,
 
   roundTenths: x => x.toLocaleString(
     undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 }),
@@ -55,6 +70,16 @@ export default {
       const a = (t - elapsed[i - 1]) / (elapsed[i] - elapsed[i - 1])
       return (1 - a) * lo + a * hi
     })
+  },
+
+  // Many fits to experimental "max hr" data based on age/gender, average them.
+  // https://www.trailrunnerworld.com/maximum-heart-rate-calculator/
+  maxHeartRateBpm = (age_y, is_male = null) => {
+    const models = [220 - age_y, 217 - 0.85 * age_y, 206.9 - 0.67 * age_y]
+    if (is_male === true || is_male === false) {
+      models.push(is_male ? 202 - 0.55 * age_y : 216 - 1.09 * age_y)
+    }
+    return mean(models)
   },
 
   // Cumulative metabolic energy, computed from instantaneous heart rate
@@ -84,9 +109,9 @@ export default {
     return cumsum(bpm.map(x => (x * slope + intercept) * 1000 / 60))
   },
 
-  waveletEncode: (data, prune) => {
-    return dwt.wavedec(data, 'haar').slice(0, prune).flat()
-  },
+  waveletEncode: (data, cut) => dwt.wavedec(data, 'haar').slice(
+    0, cut || (1 + Math.floor(Math.sqrt(data.length)))
+  ).flat(),
 
   waveletDecode: (coeffs, n) => {
     if (!coeffs || !n) return []
@@ -107,12 +132,15 @@ export default {
   },
 
   formatDuration: s => {
-    return dayjs.duration(parseInt(1000 * s))
+    return s <= 0 ? '---' : dayjs.duration(parseInt(1000 * s))
       .toISOString()
       .replace(/[PT]/g, '')
       .toLowerCase()
       .replace(/([ymdh])/ig, '$1 ')
       .replace(/\s+$/, '')
+      .split(/ /)
+      .slice(0, 2)
+      .join(' ')
   },
 
   parseDuration: s => dayjs.duration(
@@ -129,5 +157,12 @@ export default {
       arr[j] = t
     }
     return arr
+  },
+
+  formatDegrees: value => {
+    const deg = Math.floor(value)
+    const min = Math.floor(60 * (value - deg))
+    const sec = Math.floor(3600 * (value - deg - min / 60))
+    return `${deg}°${min}′${sec}″`
   },
 }
