@@ -42,20 +42,11 @@ class Workout(db.Model):
         db.Integer, db.CascadeForeignKey('collections'), unique=True, nullable=False)
     collection = db.OneToOneRelationship(Collection, 'workout')
 
-    # A JSON string containing goals for this workout, like a list of target sets.
-    goals = db.Column(db.LargeBinary)
-
-    # Times that this workout was created / marked complete.
-    created_utc = db.Column(db.Integer)
-    complete_utc = db.Column(db.Integer)
-
     def to_dict(self):
         return dict(
             id=self.id,
-            goals=json.loads(self.goals),
             collection=self.collection.to_dict(),
             sets=[s.to_dict() for s in self.sets],
-            complete_utc=self.complete_utc,
         )
 
 
@@ -74,31 +65,47 @@ class Set(db.Model):
     end_utc = db.Column(db.Integer)
 
     # Discrete wavelet encoding of heart rate R-R intervals in milliseconds.
-    rr_coeffs = db.Column(db.LargeBinary)
+    rr_intervals = db.Column(db.LargeBinary)
     rr_count = db.Column(db.Integer)
+
+    # Discrete wavelet encoding of step intervals in milliseconds.
+    step_intervals = db.Column(db.LargeBinary)
+    step_count = db.Column(db.Integer)
 
     # Discrete wavelet encoding of lat/lng/alt of GPS track (e.g. for cycling).
     gps_lats = db.Column(db.LargeBinary)
     gps_lngs = db.Column(db.LargeBinary)
     gps_alts = db.Column(db.LargeBinary)
+    gps_times = db.Column(db.LargeBinary)
     gps_count = db.Column(db.Integer)
 
-    # Measurements potentially reported by exercise equipment.
-    reps = db.Column(db.Integer)
+    # Targets for this set.
+    target_repetitions = db.Column(db.Integer)
+    target_resistance = db.Column(db.Float)
+    target_distance_m = db.Column(db.Float)
+    target_duration_s = db.Column(db.Float)
+
+    # Actual performance.
+    repetitions = db.Column(db.Integer)
     resistance = db.Column(db.Float)
     distance_m = db.Column(db.Float)
     cadence_hz = db.Column(db.Float)
     avg_power_w = db.Column(db.Float)
 
     def update_from(self, data):
-        if 'rr_coeffs' in data and 'rr_count' in data and int(data['rr_count']) > 0:
-            self.rr_coeffs = data['rr_coeffs']
+        if data.get('rr_count') and int(data['rr_count']) > 0:
+            self.rr_intervals = data['rr_intervals']
             self.rr_count = int(data['rr_count'])
 
-        if 'gps_lats' in data and 'gps_lngs' in data and int(data['gps_count']) > 0:
+        if data.get('step_count') and int(data['step_count']) > 0:
+            self.step_intervals = data['step_intervals']
+            self.step_count = int(data['step_count'])
+
+        if data.get('gps_count') and int(data['gps_count']) > 0:
             self.gps_lats = data['gps_lats']
             self.gps_lngs = data['gps_lngs']
             self.gps_alts = data.get('gps_alts')
+            self.gps_times = data.get('gps_times')
             self.gps_count = int(data['gps_count'])
 
         def validate(attr, build, validate):
@@ -107,6 +114,7 @@ class Set(db.Model):
                 if validate(value):
                     setattr(self, attr, value)
 
+        validate('start_utc', int, lambda v: v > 0)
         validate('end_utc', int, lambda v: v > 0)
         validate('reps', int, lambda v: v > 0)
         validate('resistance', float, lambda v: v > 0)
@@ -119,10 +127,15 @@ class Set(db.Model):
             id=self.id,
             workout_id=self.workout_id,
             exercise_id=self.exercise_id,
+            target_amount=self.target_amount,
+            target_difficulty=self.target_difficulty,
+            target_duration_s=self.target_duration_s,
             start_utc=self.start_utc,
             end_utc=self.end_utc,
-            rr_coeffs=self.rr_coeffs,
+            rr_intervals=self.rr_intervals,
             rr_count=self.rr_count,
+            step_intervals=self.step_intervals,
+            step_count=self.step_count,
             gps_lats=self.gps_lats,
             gps_lngs=self.gps_lngs,
             gps_alts=self.gps_alts,

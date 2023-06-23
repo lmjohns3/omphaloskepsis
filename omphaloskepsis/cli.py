@@ -18,41 +18,51 @@ def cli(ctx, db):
 
 
 @cli.command()
-@click.option('--load', default='', metavar='FILE',
-              help='Import data from FILE containing older database.')
 @click.option('--config', metavar='FILE',
-              help='Load config from this file.')
-@click.argument('account', nargs=-1)
+              help='Load config from FILE.')
+@click.argument('emails', nargs=-1)
 @click.pass_context
-def init(ctx, load, config, account):
+def init(ctx, config, emails):
     import sqlalchemy
     from . import accounts, db, snapshots, workouts
 
-    engine = sqlalchemy.create_engine(f'sqlite:///{ctx.obj["db"]}')
-    db.Model.metadata.create_all(engine)
-
-    sess = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=False)()
-
+    static = {}
     if config:
         with open(config) as handle:
-            static = yaml.load(handle, Loader=yaml.CLoader)
+            static.update(yaml.load(handle, Loader=yaml.CLoader))
+
+    db_path = ctx.obj['db']
+    root = os.path.dirname(db_path)
+    if not os.path.isdir(root):
+        os.makedirs(root)
+    engine = sqlalchemy.create_engine(f'sqlite:///{db_path}')
+    accounts.Model.metadata.create_all(engine)
+    sess = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=False)()
+
+    for email in emails:
+        password = click.prompt(
+            f'Password for {email}', hide_input=True, confirmation_prompt=False)
+        account = accounts.Account(
+            emails=[accounts.Email(email=email, validated_utc=time.time())],
+            password=accounts.Password(password=bcrypt.hashpw(
+                password.encode('utf8'), bcrypt.gensalt())))
+        sess.add(account)
+        sess.commit()
+
+        db_path = account.get_database_path(root)
+        if not os.path.isdir(os.path.dirname(db_path)):
+            os.makedirs(os.path.dirname(db_path))
+        engine = sqlalchemy.create_engine(f'sqlite:///{db_path}')
+        db.Model.metadata.create_all(engine)
+        s = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=False)()
         for name, exercise in static.get('exercises', {}).items():
-            sess.add(workouts.Exercise(
+            s.add(workouts.Exercise(
                 name=name,
                 about=exercise.get('about'),
                 image=exercise.get('image'),
                 video=exercise.get('video'),
                 tags=exercise.get('tags', ())))
-
-    for email in account:
-        password = click.prompt(
-            f'Password for {email}', hide_input=True, confirmation_prompt=False)
-        sess.add(accounts.Account(
-            emails=[accounts.Email(email=email, validated_utc=time.time())],
-            password=accounts.Password(password=bcrypt.hashpw(
-                password.encode('utf8'), bcrypt.gensalt()))))
-
-    sess.commit()
+        s.commit()
 
 
 @cli.command()

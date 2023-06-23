@@ -3,7 +3,6 @@ import re
 import sqlalchemy
 
 from . import db
-from .accounts import Account
 
 
 collection_tags = db.TagSecondary('collection')
@@ -32,9 +31,6 @@ class Snapshot(db.Model):
     __tablename__ = 'snapshots'
 
     id = db.Column(db.Integer, primary_key=True)
-
-    account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
-    account = sqlalchemy.orm.relationship(Account, backref='snapshots', uselist=False)
 
     collection_id = db.Column(db.Integer, db.CascadeForeignKey('collections'))
     collection = sqlalchemy.orm.relationship(
@@ -103,6 +99,8 @@ class Snapshot(db.Model):
         validate('anger', float, lambda v: 0 <= v <= 1)
         validate('mood', float, lambda v: -1 <= v <= 1)
 
+        validate('collection_id', int, lambda v: v > 0)
+
         if 'walk_time_min' in data and 'walk_heart_rate_bpm' in data:
             time_min = float(data['walk_time_min'])
             heart_rate_bpm = float(data['walk_heart_rate_bpm'])
@@ -121,18 +119,18 @@ class Snapshot(db.Model):
                 fields['workout_id'] = self.collection.workout.id
         return fields
 
-    def set_vo2_max_from_resting_hr(self, heart_rate_bpm):
+    def set_vo2_max_from_resting_hr(self, heart_rate_bpm, heart_rate_max_bpm):
         # HR fraction method
         # https://www.trailrunnerworld.com/vo2-max-calculator/
-        self.vo2_max_ml_kg_min = 15.3 * self.account.heart_rate_max_bpm / heart_rate_bpm
+        self.vo2_max_ml_kg_min = 15.3 * heart_rate_max_bpm / heart_rate_bpm
 
-    def set_vo2_max_from_mile_hr(self, walk_time_min, walk_heart_rate_bpm):
+    def set_vo2_max_from_mile_hr(self, age_y, is_male, walk_time_min, walk_heart_rate_bpm):
         # Rockport method: Walk 1 mile, measure time and HR at end of walk.
         # https://www.calculatorpro.com/calculator/vo2-max-calculator/
         # http://www.shapesense.com/fitness-exercise/calculators/vo2max-calculator.shtml
         self.vo2_max_ml_kg_min = (132.8530
-                                  + 6.3150 * self.account.is_male
-                                  - 0.3877 * self.account.age_y
+                                  + 6.3150 * is_male
+                                  - 0.3877 * age_y
                                   - 0.1695 * self.weight_kg
                                   - 3.2649 * walk_time_min
                                   - 0.1565 * walk_heart_rate_bpm)
