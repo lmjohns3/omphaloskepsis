@@ -1,7 +1,20 @@
+import proj4 from 'proj4'
 import React from 'react'
 import { Map as Leaflet, TileLayer } from 'react-leaflet'
 
 import 'leaflet/dist/leaflet.css'
+
+
+const geoToUtmConverter = zone => proj4(`+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`).forward
+
+
+// https://maptools.com/tutorials/grid_zone_details
+const getUtmZone = geo => {
+  const n = 1 + Math.floor((geo.coords.longitude + 180) / 6)
+  const l = 'CDEFGHJKLMNPQRSTUVWX'[Math.floor((geo.coords.latitude + 80) / 8)]
+  return `${n}${l}`
+}
+
 
 const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
   const attributions = {
@@ -35,6 +48,7 @@ const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
   // {false ? <Marker position={[lat, lng]}><Popup>Here!</Popup></Marker> : null}
 }
 
+
 const useGeo = (
   timeout = 10 * 1000, // 10 sec
   maximumAge = 5 * 60 * 1000, // 5 min
@@ -42,13 +56,14 @@ const useGeo = (
 ) => {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
-      geo => resolve(geo.coords ? { lat: geo.coords.latitude, lng: geo.coords.longitude } : {}),
-      reject,
-      { timeout, maximumAge, enableHighAccuracy })
+      resolve, reject, { timeout, maximumAge, enableHighAccuracy })
   })
 }
 
+
 export {
+  geoToUtmConverter,
+  getUtmZone,
   Map,
   useGeo,
 }

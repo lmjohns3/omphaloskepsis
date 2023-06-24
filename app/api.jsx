@@ -26,7 +26,7 @@ const fetchJson = (url, args) => fetch(url, args)
 const apiCreate = (path, args) => useGeo().then(geo => apiUpdate(path, {
   utc: dayjs.utc().unix(),
   tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  ...geo,
+  ...(geo?.coords ? { lat: geo.coords.latitude, lng: geo.coords.longitude }: {}),
   ...args,
 }))
 
