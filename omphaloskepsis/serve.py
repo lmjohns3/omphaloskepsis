@@ -1,6 +1,7 @@
 import collections
 import flask
 import flask_bcrypt
+import flask_mail
 import flask_sessions
 import flask_sqlalchemy
 import hashlib
@@ -13,13 +14,15 @@ import time
 import webauthn
 import yaml
 
-from .accounts import Account
+from .accounts import Account, Email
 from .snapshots import Collection, Snapshot
 from .workouts import Exercise, Set, Workout
 
 app = flask.Flask('omphaloskepsis', template_folder='static')
-bcrypt = flask_bcrypt.Bcrypt(app)
+
 acctdb = flask_sqlalchemy.SQLAlchemy()
+bcrypt = flask_bcrypt.Bcrypt(app)
+mail = flask_mail.Mail(app)
 
 
 # helpers
@@ -50,10 +53,11 @@ def _populate_account():
         del flask.session['aid']
         return
     path = os.path.join(app.config['root'], *req.account.path_components)
-    if not os.path.exists(path):
-        del flask.session['aid']
-        return
     engine = sqlalchemy.create_engine(f'sqlite:///{path}', echo=app.config['SQLALCHEMY_ECHO'])
+    if not os.path.isdir(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+    if not os.path.exists(path):
+        db.Model.metadata.create_all(engine)
     req.db = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=False)()
 
 
@@ -209,7 +213,7 @@ def update_set(wid, sid):
     flask.abort(404)
 
 
-# app
+# account
 
 @app.route('/api/account/', methods=['GET'])
 def get_account():
@@ -234,6 +238,69 @@ def delete_account():
     acctdb.session.commit()
     return flask.jsonify({})
 
+@app.route('/api/config/', methods=['GET'])
+def get_config():
+    config = {}
+    if app.config['config']:
+        with open(app.config['config']) as handle:
+            config.update(yaml.load(handle, Loader=yaml.CLoader))
+    config['exercises'] = {e.id: e.to_dict() for e in req.db.query(Exercise).all()}
+    config['tagToIds'] = collections.defaultdict(list)
+    config['nameToId'] = {}
+    for ex in config['exercises'].values():
+        config['nameToId'][ex['name']] = ex['id']
+        for tag in ex['tags']:
+            config['tagToIds'][tag].append(ex['id'])
+    return flask.jsonify(config)
+
+
+# signup
+
+SIGNUP_EMAIL_BODY = '''\
+Hello {email} -
+
+Thanks for signing up to keep track of yourself!
+
+Before you can get started, please confirm that you own this email
+address by vising the following link:
+
+  https://{domain}/confirm/{email64}/{code}/
+
+Thanks!
+'''
+
+@app.route('/api/register/', methods=['POST'])
+def register():
+    req = flask.request
+
+    if 'email' not in req.json:
+        flask.abort(401)
+
+    email = req.json['email']
+    code = secrets.token_hex()
+    domain = app.config['SESSION_COOKIE_DOMAIN']
+    mail.send(flask_mail.Message(
+        sender=f'noreply@{domain}',
+        recipients=[email],
+        subject='Please confirm your email address',
+        body=SIGNUP_EMAIL_BODY.format(
+            code=code,
+            domain=domain,
+            email=email,
+            email64=base64.urlsafe_b64encode(email.encode('utf8')).strip(b'='),
+        )))
+
+    account = Account(
+        email=Email(email=email, validation_code=code),
+        password=req.json.get('password'),
+    )
+    acctdb.session.add(account)
+    acctdb.session.commit()
+
+    return _json({})
+
+
+# session
 
 @app.route('/api/login/', methods=['POST'])
 def login():
@@ -267,28 +334,6 @@ def logout():
     del flask.session['aid']
     del flask.session['csrf']
     return flask.jsonify({})
-
-
-@app.route('/api/csrf/', methods=['POST'])
-def refresh_csrf_token():
-    flask.session['csrf'] = _create_csrf_token(flask.request.account.id)
-    return flask.jsonify(dict(csrf=flask.session['csrf']))
-
-
-@app.route('/api/config/', methods=['GET'])
-def config():
-    config = {}
-    if app.config['config']:
-        with open(app.config['config']) as handle:
-            config.update(yaml.load(handle, Loader=yaml.CLoader))
-    config['exercises'] = {e.id: e.to_dict() for e in req.db.query(Exercise).all()}
-    config['tagToIds'] = collections.defaultdict(list)
-    config['nameToId'] = {}
-    for ex in config['exercises'].values():
-        config['nameToId'][ex['name']] = ex['id']
-        for tag in ex['tags']:
-            config['tagToIds'][tag].append(ex['id'])
-    return flask.jsonify(config)
 
 
 @app.route('/')
