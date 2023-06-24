@@ -1,7 +1,7 @@
 import base64
 import json
-import pendulum
 import random
+import re
 import sqlalchemy
 import struct
 import time
@@ -10,10 +10,10 @@ from . import db
 
 
 def encode_id(x):
-    return base64.b64encode(struct.pack('>q', x))[:-1]
+    return base64.urlsafe_b64encode(struct.pack('>q', x))[:-1]
 
 def decode_id(x):
-    return struct.unpack('>q', base64.b64decode(x + b'='))[0]
+    return struct.unpack('>q', base64.urlsafe_b64decode(x + b'='))[0]
 
 
 class Account(db.Model):
@@ -21,73 +21,51 @@ class Account(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, default=lambda: random.getrandbits(63))
 
+    created_utc = db.Column(db.Integer, default=time.time, nullable=False)
+
+    email = db.Column(db.String(80), unique=True)
+    validation_code = db.Column(db.String(128))
+    validated_utc = db.Column(db.Integer)
+
+    password = db.Column(db.LargeBinary)
+
+    last_login_utc = db.Column(db.Integer)
+    last_failure_utc = db.Column(db.Integer)
+    failures_since_login = db.Column(db.Integer, default=0, nullable=False)
+
+    reset_code = db.Column(db.String(128))
+    reset_requested_utc = db.Column(db.Integer)
+
+    blocked_utc = db.Column(db.Integer)
+
     # This is a JSON-encoded blob containing account settings.
-    config = db.Column(db.LargeBinary)
+    config = db.Column(db.LargeBinary, default='', nullable=False)
 
     @property
-    def age_y(self):
-        return pendulum.parse(self.birthday).age if self.birthday else None
+    def path_components(self):
+        enc = encode_id(self.id)
+        return enc[-1], enc[-2], f'{enc}.db'
 
-    @property
-    def heart_rate_max_bpm(self):
-        # Many fits to experimental "max hr" data -- average a few of them.
-        # https://www.trailrunnerworld.com/maximum-heart-rate-calculator/
-        age = self.age_y
-        if age is None:
-            return None
-        models = [220 - age, 217 - 0.85 * age, 206.9 - 0.67 * age]
-        if self.is_male is not None:
-            models.append(202 - 0.55 * age if self.is_male else 216 - 1.09 * age)
-        return sum(models) / len(models)
+    def update_from(self, data):
+        if 'config' in data:
+            self.config = json.dumps(data['config'])
+        if self._valid_password(data.get('password', '')):
+            self.password = data['password']
 
     def to_dict(self):
         return dict(
-            config=self.config,
-            emails=[e.to_dict() for e in self.emails],
+            config=json.loads(self.config),
+            email=self.email,
+            created_utc=self.created_utc,
+            validated_utc=self.validated_utc,
             keys=[k.to_dict() for k in self.keys],
         )
 
-
-class Email(db.Model):
-    __tablename__ = 'emails'
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    created_utc = db.Column(db.Integer, default=time.time, nullable=False)
-    last_use_utc = db.Column(db.Integer)
-
-    account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
-    account = sqlalchemy.orm.relationship(Account, backref='emails', lazy='selectin')
-
-    email = db.Column(db.String(80), unique=True)
-
-    validation = db.Column(db.String(128))
-    validated_utc = db.Column(db.Integer, index=True)
-
-    blocked_utc = db.Column(db.Integer, index=True)
-
-    def to_dict(self):
-        return dict(
-            id=self.id,
-            created_utc=self.created_utc,
-            last_use_utc=self.last_use_utc,
-            email=self.email,
-        )
-
-
-class Password(db.Model):
-    __tablename__ = 'passwords'
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    created_utc = db.Column(db.Integer, default=time.time, nullable=False)
-    last_use_utc = db.Column(db.Integer)
-
-    account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
-    account = db.OneToOneRelationship(Account, 'password')
-
-    password = db.Column(db.LargeBinary)
-    failures = db.Column(db.Float, default=0)
+    def _valid_password(self, p):
+        return all((len(p) > 15,
+                    p != self.password,
+                    re.search(r'\w', p),
+                    re.search(r'\W', p)))
 
 
 class Key(db.Model):
@@ -96,7 +74,7 @@ class Key(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     created_utc = db.Column(db.Integer, default=time.time, nullable=False)
-    last_use_utc = db.Column(db.Integer)
+    last_used_utc = db.Column(db.Integer)
 
     account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
     account = sqlalchemy.orm.relationship(Account, backref='keys', lazy='selectin')
@@ -104,6 +82,7 @@ class Key(db.Model):
     description = db.Column(db.String)
     keyid = db.Column(db.String, unique=True, nullable=False)
     pubkey = db.Column(db.LargeBinary, nullable=False)
+
     counter = db.Column(db.Integer, nullable=False)
     challenge = db.Column(db.LargeBinary)
 
@@ -111,7 +90,7 @@ class Key(db.Model):
         return dict(
             id=self.id,
             created_utc=self.created_utc,
-            last_use_utc=self.last_use_utc,
+            last_used_utc=self.last_used_utc,
             description=self.description,
             keyid=self.keyid,
             pubkey=self.pubkey,
