@@ -7,7 +7,8 @@ module.exports = {
   entry: './index.jsx',
   output: {
     path: path.resolve(__dirname, '../omphaloskepsis/static/'),
-    filename: 'app.[hash].js',
+    filename: 'app.js',
+    //filename: 'app.[hash].js',
   },
   devtool: 'inline-source-map',
   module: { rules: [
@@ -25,7 +26,7 @@ module.exports = {
       use: [MiniCssExtractPlugin.loader, 'css-loader'],
     },
     {
-      test: /\.png$/i,
+      test: /\.(png|mp3)$/i,
       type: 'asset/resource',
     },
   ]},
@@ -36,7 +37,8 @@ module.exports = {
       publicPath: '/static/',
     }),
     new MiniCssExtractPlugin({
-      filename: 'app.[hash].css',
+      filename: 'app.css',
+      //filename: 'app.[hash].css',
     }),
   ],
 }
