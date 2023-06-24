@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 
 import { apiRead } from './api.jsx'
 import { Map } from './geo.jsx'
@@ -9,20 +9,29 @@ import './collection.styl'
 
 const Collection = () => {
   const id = parseInt(useParams().id, 36)
-  const [collection, setCollection] = useState({})
+  const [collection, setCollection] = useState(null)
 
-  useEffect(() => { apiRead(`collections/${id}`).then(setCollection) }, [])
+  useEffect(() => { apiRead(`collection/${id}`).then(setCollection) }, [])
 
-  return <div className='collection'>
-    {collection.snapshots.map(snapshot => <Snapshot key={snapshot.id} snapshot={snapshot} />)}
-  </div>
+  if (!collection) return null
+
+  return (
+    <div className='collection'>
+      {collection.snapshots.map(snap => <Snapshot key={snap.id} snapshot={snap} />)}
+    </div>
+  )
 }
 
 
 const Snapshot = ({ snapshot }) => {
-  return <div className='snapshot'>
-    {snapshot.note}
-  </div>
+  const history = useHistory()
+
+  return (
+    <div className='snapshot' onClick={() => history.push(`/snapshot/${snapshot.id.toString(36)}/`)}>
+      {snapshot.utc}
+      {snapshot.note}
+    </div>
+  )
 }
 
 
