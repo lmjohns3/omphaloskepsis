@@ -75,30 +75,30 @@ const Vitals = ({ snapshot, update }) => (
     </div>
 
     <div className='feels'>
-      <Dial icon='😄' attr='happy' snapshot={snapshot} update={update} />
-      <Dial icon='😢' attr='sad' snapshot={snapshot} update={update} />
-      <Dial icon='😠' attr='angry' snapshot={snapshot} update={update} />
-      <Dial icon='😨' attr='afraid' snapshot={snapshot} update={update} />
+      <Dial icon='😄' attr='joy' value={snapshot.joy} update={update} />
+      <Dial icon='😢' attr='sadness' value={snapshot.sadness} update={update} />
+      <Dial icon='😠' attr='anger' value={snapshot.anger} update={update} />
+      <Dial icon='😨' attr='fear' value={snapshot.fear} update={update} />
     </div>
 
-    <Meter update={update} snapshot={snapshot} emoji='📏' label='Height'
+    <Meter update={update} value={snapshot.height_cm} emoji='📏' label='Height'
            attr='height_cm' formats={{ 'in': 0.3937, 'cm': null }} />
-    <Meter update={update} snapshot={snapshot} emoji='⚖️' label='Weight'
+    <Meter update={update} value={snapshot.weight_kg} emoji='⚖️' label='Weight'
            attr='weight_kg' formats={{ 'lb': 2.20462, 'st': 0.15747, 'kg': null }} />
-    <Meter update={update} snapshot={snapshot} emoji='🌡️' label='Temp'
+    <Meter update={update} value={snapshot.body_temp_degc} emoji='🌡️' label='Temp'
            attr='body_temp_degc' formats={{ '°C': null, '°F': [
              degc => degc * 1.8 + 32, degf => (degf - 32) / 1.8 ] }} />
-    <Meter update={update} snapshot={snapshot} emoji='💗️' label='Pulse'
+    <Meter update={update} value={snapshot.heart_rate_bpm} emoji='💗️' label='Pulse'
            attr='heart_rate_bpm' formats={{ 'bpm': null, 'Hz': 1 / 60 }} />
-    <Meter update={update} snapshot={snapshot} emoji='🫀️' label='Pressure'
+    <Meter update={update} value={snapshot.blood_pressure_mmhg} emoji='🫀️' label='Pressure'
            attr='blood_pressure_mmhg' formats={{ 'mmHg': null }} />
-    <Meter update={update} snapshot={snapshot} emoji='🩸' label='Oxygen'
+    <Meter update={update} value={snapshot.blood_oxygen_spo2_pct} emoji='🩸' label='Oxygen'
            attr='blood_oxygen_spo2_pct' formats={{ '%': null }} />
-    <Meter update={update} snapshot={snapshot} emoji='🫁' label='V02 max'
+    <Meter update={update} value={snapshot.vo2_max_ml_kg_min} emoji='🫁' label='V02 max'
            attr='vo2_max_ml_kg_min' formats={{ 'mL/(kg·min)': null }} />
-    <Meter update={update} snapshot={snapshot} emoji='💪' label='Lactate'
+    <Meter update={update} value={snapshot.lactate_mmol_l} emoji='💪' label='Lactate'
            attr='lactate_mmol_l' formats={{ 'mmol/L': null }} />
-    <Meter update={update} snapshot={snapshot} emoji='🍭' label='Glucose'
+    <Meter update={update} value={snapshot.glucose_mmol_l} emoji='🍭' label='Glucose'
            attr='glucose_mmol_l' formats={{ 'mmol/L': null }} />
   </div>
 )
