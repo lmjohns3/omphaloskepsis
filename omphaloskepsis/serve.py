@@ -1,6 +1,7 @@
 import collections
 import flask
 import flask_bcrypt
+import flask_limiter as flim
 import flask_mail
 import flask_sessions
 import flask_sqlalchemy
@@ -13,16 +14,23 @@ import sqlalchemy.orm
 import time
 import webauthn
 import yaml
+import werkzeug.middleware.proxy_fix as pfix
 
 from .accounts import Account, Email
 from .snapshots import Collection, Snapshot
 from .workouts import Exercise, Set, Workout
 
 app = flask.Flask('omphaloskepsis', template_folder='static')
+app.wsgi_app = pfix.ProxyFix(app.wsgi_app, x_for=1)
 
 acctdb = flask_sqlalchemy.SQLAlchemy()
 bcrypt = flask_bcrypt.Bcrypt(app)
 mail = flask_mail.Mail(app)
+limiter = flim.Limiter(
+    flim.util.get_remote_address,
+    app=app,
+    default_limits=['20/minute'],
+    storage_uri='redis://127.0.0.1:6379')
 
 
 # helpers
