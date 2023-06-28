@@ -3,225 +3,269 @@ dayjs.extend(require('dayjs/plugin/utc'))
 dayjs.extend(require('dayjs/plugin/timezone'))
 dayjs.extend(require('dayjs/plugin/duration'))
 dayjs.extend(require('dayjs/plugin/minMax'))
+dayjs.extend(require('dayjs/plugin/localizedFormat'))
+dayjs.extend(require('dayjs/plugin/relativeTime'))
 
 import useNoSleep from 'use-no-sleep'
-import React, { useEffect, useState } from 'react'
-import { useHistory, useParams } from 'react-router-dom'
+import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 
-import { apiCreate, apiRead } from './api.jsx'
-import { Meter } from './common.jsx'
+import { apiCreate, apiRead, apiUpdate } from './api.jsx'
+import { ConfigContext, Meter } from './common.jsx'
+import { geoToUtmConverter, getUtmZone, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
-import { NewWorkout } from './new-workout.jsx'
+
+import alarmSound from './alarm.mp3'
 
 import './workout.styl'
 
 
-const ExistingWorkout = () => {
+const sumDistance = ({ acc, prev }, geo) => {
+  const { latitude: lat, longitude: lng } = geo.coords
+  const [e, n] = geoToUtmConverter(getUtmZone(geo))([lng, lat])
+  if (!prev) return { acc: 0, prev: [e, n] }
+  const [pe, pn] = prev
+  const [de, dn] = [e - pe, n - pn]
+  return { acc: acc + Math.sqrt(de * de + dn * dn), prev: [e, n] }
+}
+
+
+const Workout = () => {
   const id = parseInt(useParams().id, 36)
-  const history = useHistory()
-  const [config, setConfig] = useState(null)
+  const config = useContext(ConfigContext)
+
   const [workout, setWorkout] = useState(null)
-  const [activeSet, setActiveSet] = useState(null)
-  const [selected, setSelected] = useState(null)
 
-  useEffect(() => { apiRead(`config`).then(setConfig) }, [])
-  useEffect(() => { apiRead(`workout/${id}`).then(setWorkout) }, [id])
-  useEffect(() => {
-    if (!workout) return
-    setSelected(workout.sets.length % workout.goals.length)
-    const active = workout.sets.filter(es => !es.end_utc)
-    if (active.length) setActiveSet(active[0])
-  }, [workout])
+  const reload = () => {
+    setWorkout(null)
+    apiRead(`workout/${id}`).then(setWorkout)
+  }
 
-  if (!workout || !config || selected === null) return null
+  useEffect(() => { reload() }, [id])
 
-  const completedExercises = workout.sets.map(es => es.exercise_id)
-  const goal = workout.goals[selected]
+  if (!workout || !config) return null
+
+  const completedSets = workout.sets.filter(es => es.end_utc)
+  const remainingSets = workout.sets.filter(es => !es.end_utc)
+
+  console.log(completedSets.length, 'completed', remainingSets.length, 'remaining')
 
   return (
     <div className='workout container'>
-      {!navigator.bluetooth ? null : <HeartRate />}
-      {!window.Accelerometer ? null : <StepCounter />}
-      {activeSet ? <ActiveSet workout={workout} es={activeSet} /> : (<>
-        <h1 className='next'>
-          <select value={selected} onChange={e => setSelected(e.target.value)}>{
-            workout.goals.map((goal, i) => (
-              <option key={i} value={i}>{config.exercises[goal.id].name}</option>
-            ))
-          }</select>
-          <button className='start' onClick={() => apiCreate(`workout/${id}/sets`, { exercise_id: goal.id }).then(setActiveSet)}>⏱️ Start!</button>
-        </h1>
-        <div className='goal'>
-          Goals:
-          {goal.resistance ? `🪨 ${goal.resistance}` : null}
-          {goal.reps ? `🧮 ${goal.reps}` : null}
-          {goal.duration_s ? `⏲️ ${lib.formatDuration(goal.duration_s)}` : null}
-          <img src={`/static/img/${config.exercises[goal.id].image}`} />
-        </div>
-      </>)}
-      {workout.sets.length ? (<>
-        <h2>Completed</h2>
-        <ul>{workout.sets.map(es => es.end_utc ? <CompletedSet key={es.id} set={es} /> : null)}</ul>
-      </>) : null}
+      {remainingSets.length ? <ActiveSet workout={workout} refresh={reload} /> : null}
+      {completedSets.length ? completedSets.sort((a, b) => b.end_utc - a.end_utc).map(
+        set => <CompletedSet key={set.id} workout={workout} set={set} />
+      ) : null}
     </div>
   )
 }
 
 
-const CompletedSet = ({ es }) => (
-  <div className='exercise-set'>
-    <h2 className='name'>{es.exercise.name}</h2>
-    <div className='metrics'>
-      <div className='meter'>
-        <span className='label'>Duration</span>
-        <span className='emoji'>⏱️</span>
-        <span className='value'>{lib.formatDuration(es.end_utc - es.start_utc)}</span>
+const CompletedSet = ({ workout, set }) => {
+  const config = useContext(ConfigContext)
+
+  return config && (
+    <div className='completed-set'>
+      <h2 className='name'>{config.exercises[set.exercise_id].name}</h2>
+      <span className='finished'>{dayjs.unix(set.end_utc).fromNow()}</span>
+      <div className='metrics'>
+        <Meter value={lib.formatDuration(set.end_utc - set.start_utc)} label='Duration' emoji='⏱️' />
+        {set.reps ? <Meter value={set.reps} attr='reps' label='Reps' emoji='🧮' /> : null}
+        {set.resistance ? <Meter value={set.resistance} attr='resistance' label='Resistance'
+                                emoji='🪨' formats={{ '': null, lb: 1, kg: 1 }} /> : null}
+        {set.distance_m ? <Meter value={set.distance_m} attr='distance_m' label='Distance'
+                                emoji='📍' formats={{ m: null, km: 0.001, mi: 0.0062137 }} /> : null}
+        {set.cadence_hz ? <Meter value={set.cadence_hz} attr='cadence_hz' label='Cadence'
+                                emoji='🚲' formats={{ Hz: null, rpm: 60 }} /> : null}
+        {set.avg_power_w ? <Meter value={set.avg_power_w} attr='avg_power_w' label='Average Power'
+                                 emoji='⚡' formats={{ W: null, hp: 0.00134102 }} /> : null}
       </div>
-      {es.reps ? <Meter value={es.reps} attr='reps' label='Reps' emoji='🧮' /> : null}
-      {es.resistance ? <Meter value={es.resistance} attr='resistance' label='Resistance'
-                              emoji='🪨' formats={{ '': null, lb: 1, kg: 1 }} /> : null}
-      {es.distance_m ? <Meter value={es.distance_m} attr='distance_m' label='Distance'
-                              emoji='📍' formats={{ m: null, km: 0.001, mi: 0.0062137 }} /> : null}
-      {es.cadence_hz ? <Meter value={es.cadence_hz} attr='cadence_hz' label='Cadence'
-                              emoji='🚲' formats={{ Hz: null, rpm: 60 }} /> : null}
-      {es.avg_power_w ? <Meter value={es.avg_power_w} attr='avg_power_w' label='Average Power'
-                               emoji='⚡' formats={{ W: null, hp: 0.00134102 }} /> : null}
     </div>
-  </div>
-)
+  )
+}
 
 
-const ActiveSet = ({ workout, es, goals }) => {
-  const [stepCount, setStepCount] = useState(0)
-  const [rrs, setRrs] = useState(lib.waveletDecode(es.rr_coeffs, es.rr_count))
-  const remainingSec = dayjs.utc() - es.start_utc
-  const [preventSleep, setPreventSleep] = useState(remainingSec > 0)
-  const nosleep = useNoSleep(preventSleep)
+const ActiveSet = ({ workout, refresh }) => {
+  const config = useContext(ConfigContext)
 
-  const timeFinished = () => {
-    postTo(`events/${event.id}`, ex)
-    setPreventSleep(false)
+  const [set, setSet] = useState(workout.sets.filter(es => !es.end_utc)[0])
+  const [nosleep, setNosleep] = useState(set.start_utc && !set.end_utc)
+  const awake = useNoSleep(nosleep)
+
+  const [stepTimes, setStepTimes] = useState([])
+  const [geoMeasurements, setGeoMeasurements] = useState([])
+  const [heartRateMeasurements, setHeartRateMeasurements] = useState([])
+
+  const post = data => apiUpdate(`workout/${workout.id}/set/${set.id}`, data).then(setSet)
+  const start = () => { post({ start_utc: dayjs().unix() }); setNosleep(true) }
+  const finish = () => { post({ end_utc: dayjs().unix() }); setNosleep(false) }
+
+  const finalize = () => {
+    const data = {}
+    Object.keys(set).forEach(attr => { if (set[attr] != null) data[attr] = set[attr] })
+    if (stepTimes.length) {
+      data['step_count'] = stepTimes.length
+      data['step_intervals'] = lib.waveletEncode(lib.diff(stepTimes))
+    }
+    if (geoMeasurements.length) {
+      data['gps_count'] = geoMeasurements.length
+      data['gps_lats'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.latitude))
+      data['gps_lngs'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.longitude))
+      data['gps_alts'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.altitude))
+      data['gps_times'] = lib.waveletEncode(geoMeasurements.map(g => g.timestamp))
+    }
+    if (heartRateMeasurements.length) {
+      const rrs = []
+      heartRateMeasurements.forEach(hr => rrs.push(...hr.rrs))
+      data['rr_count'] = rrs.length
+      data['rr_intervals'] = lib.waveletEncode(rrs)
+    }
+    post(data)
+    refresh()
   }
 
-  const fields = <>
-    <label htmlFor='reps'>Reps</label>
-    <input name='reps' type='number' autoFocus
-           onChange={e => { es.reps = parseInt(e.target.value) }} />
-    <label htmlFor='resistance'>Resistance</label>
-    <input name='resistance' type='number'
-           onChange={e => { es.resistance = parseFloat(e.target.value) }} />
-    {es.group !== 'cardio' ? null : <>
-      <label htmlFor='distance_m'>Distance</label>
-      <input name='distance_m' type='number' />
-      <span className='unit'>m</span>
-      <label htmlFor='cadence_hz'>Cadence</label>
-      <input name='cadence_hz' type='number' />
-      <span className='unit'>RPM</span>
-      <label htmlFor='avg_power_w'>Average Power</label>
-      <input name='avg_power_w' type='number' />
-      <span className='unit'>W</span>
-    </>}
-    <button onClick={() => postTo(`events/${event.id}`, ex, finished)}>Done</button>
-  </>
-
-  const updateRrs = rr => {
-    ex.rr_count = rr.length
-    ex.rr_coeffs = lib.waveletEncode(rr, -3)
-    setRrs(rr)
+  const update = attr => e => {
+    const value = e.target.value
+    setSet(es => ({ ...es, [attr]: value }))
   }
 
-  const meters = <>
-    {es.group === 'cardio'
-      ? <Stopwatch durationSec={remainingSec} finished={timeFinished} />
-      : <Timer durationSec={remainingSec} finished={timeFinished} />}
-  </>
+  return config && (
+    <div className='active-set'>
+      {navigator.bluetooth &&
+       <HeartRateMonitor
+         heartRate={heartRateMeasurements.length && heartRateMeasurements.slice(-1)[0].heartRate}
+         addMeasurement={m => setHeartRateMeasurements(c => [...c, m])}
+         clear={() => setHeartRateMeasurements([])} />}
+      {window.Accelerometer &&
+       <StepCounter
+         stepCount={stepTimes.length}
+         increment={() => setStepTimes(c => [...c, dayjs.utc().unix()])}
+         clear={() => setStepTimes([])}
+         sampleFrequencyHz={31} />}
+      {navigator.geolocation &&
+       <PathTracker
+         recent={geoMeasurements.length && geoMeasurements.slice(-1)[0]}
+         distance={geoMeasurements.reduce(sumDistance, { acc: 0 }).acc}
+         addMeasurement={m => setGeoMeasurements(c => [...c, m])}
+         clear={() => setGeoMeasurements([])}
+         samplePeriodSec={60} />}
 
-  return <div className='exercise'>
-    <h2 className='name'>Now: {es.exercise}</h2>
-    {remainingSec > 0 ? meters : fields}
-  </div>
+      <h1 className='name'>
+        {set.start_utc ? null : <button className='start' onClick={start}>⏱️ Start!</button>}
+        {config.exercises[set.exercise_id].name}
+      </h1>
+
+      {set.end_utc ? (
+        <div className='finalize'>
+          Reps<input name='reps' value={set.reps || set.target_amount || ''} type='number' onChange={update('reps')} autoFocus /><br />
+          Resistance<input name='resistance' value={set.resistance || set.target_difficulty || ''} onChange={update('resistance')} type='number' /><br />
+          Distance<input name='distance_m' value={set.distance_m || set.target_amount || ''} onChange={update('distance_m')} type='number' /><span className='unit'>m</span><br />
+          Cadence<input name='cadence_hz' value={set.cadence_hz || ''} onChange={update('cadence_hz')} type='number' /><span className='unit'>RPM</span><br />
+          Average Power<input name='avg_power_w' value={set.avg_power_w || ''} onChange={update('avg_power_w')} type='number' /><span className='unit'>W</span>
+          <button className='save' onClick={finalize}>Save</button>
+        </div>
+      ) : set.start_utc ? (
+        set.target_duration_s
+          ? <Timer seconds={set.target_duration_s} finish={finish} />
+          : <Stopwatch utc={set.start_utc} finish={finish} />
+      ) : (
+        <div className='info'>
+          <img src={`/static/img/${config.exercises[set.exercise_id].image}`} />
+          <div className='targets'>
+            {set.target_difficulty ? <span className='difficulty'>Target difficulty: 🪨 {set.target_difficulty}</span> : null}
+            {set.target_amount ? <span className='amount'>Target amount: 🧮 {set.target_amount}</span> : null}
+            {set.target_duration_s ? <span className='duration_s'>Target duration: ⏲️  {lib.formatDuration(set.target_duration_s)}</span> : null}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 
 // A Timer counts down from a starting duration to zero.
-const Timer = ({ seconds, finished }) => {
-  const [running, setRunning] = useState(true)
+const Timer = ({ seconds, finish }) => {
+  const alarm = useRef(new Audio(alarmSound))
+
   const [remaining, setRemaining] = useState(seconds)
+  const [finished, setFinished] = useState(false)
 
   useEffect(() => {
-    if (running) {
-      const interval = setInterval(() => setRemaining(s => s - 0.1), 100)
-      return () => clearInterval(interval)
-    }
-  }, [running])
+    const id = setInterval(() => setRemaining(s => s - 0.1), 100)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
-    if (remaining <= 0) {
-      setRunning(false)
-      finished()
-    }
-  }, [remaining])
+    if (remaining > 0) return
+    if (finished) return
+    setFinished(true)
+    alarm.current.play()
+    finish()
+  }, [remaining, finished])
 
-  return <div className='timer'
-              onClick={() => setRunning(on => !on)}
-              onDoubleClick={() => setRemaining(seconds)}>
-    <span className='emoji'>⏲️</span>
-    <span className='value'>{lib.formatDuration(remaining)}</span>
-  </div>
+  return (
+    <div className='timer'>
+      <span className='emoji'>⏲️</span>
+      <span className='value'>{lib.formatDuration(remaining)}</span>
+    </div>
+  )
 }
 
 
 // A Stopwatch counts seconds since the watch was started.
-const Stopwatch = ({ durationSec, finished }) => {
-  const [running, setRunning] = useState(true)
-  const [elapsedSec, setElapsedSec] = useState(durationSec)
+const Stopwatch = ({ utc, finish }) => {
+  const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
-    if (running) {
-      const interval = setInterval(() => setElapsedSec(s => s + 0.1), 100)
-      return () => clearInterval(interval)
-    }
-  }, [running])
+    const id = setInterval(() => setElapsed(dayjs().unix() - utc), 100)
+    return () => clearInterval(id)
+  }, [])
 
-  useEffect(() => {
-    if (elapsedSec >= durationSec) {
-      setRunning(false)
-      finished()
-    }
-  }, [elapsedSec])
-
-  return <div className='stopwatch'
-              onClick={() => setRunning(on => !on)}
-              onDoubleClick={() => setElapsedSec(0)}>
-    <span className='emoji'>⏱️</span>
-    <span className='value'>{lib.formatDuration(elapsedSec)}</span>
-  </div>
+  return (
+    <div className='stopwatch'>
+      <button className='finish' onClick={finish}>Finish</button>
+      <span className='emoji'>⏱️</span>
+      <span className='value'>{lib.formatDuration(elapsed)}</span>
+    </div>
+  )
 }
 
 
-const StepCounter = () => {
+const StepCounter = ({ stepCount, increment, clear, sampleFrequencyHz }) => {
   const g = 9.81
-  const freqHz = 31
-  const halflifeSec = 0.5
-  const mix = Math.exp(-Math.log(2) / (freqHz * halflifeSec))
+  const smoothingHalflifeSec = 0.5
+  const mix = Math.exp(-Math.log(2) / (sampleFrequencyHz * smoothingHalflifeSec))
+  const walkFrequencyHz = 2
 
   const [enabled, setEnabled] = useState(false)
-  const [state, setState] = useState(g)
-  const [stepCount, setStepCount] = useState(0)
+  const [ema, setEma] = useState(g)
+  const [debounce, setDebounce] = useState(0)
 
   useEffect(() => {
     console.log('accelerometer is', enabled ? 'enabled' : 'disabled')
+
     if (!enabled) return
-    const acc = new window.Accelerometer({ frequency: freqHz, referenceFrame: 'device' })
+
+    const acc = new window.Accelerometer({
+      frequency: sampleFrequencyHz,
+      referenceFrame: 'device',
+    })
+
     const handler = () => {
       const { x, y, z } = acc
       const mag = Math.sqrt(x * x + y * y + z * z)
-      setState(s => {
-        const t = mix * s + (1 - mix) * mag
-        if (s < g && t > g + 0.1) setStepCount(c => c + 1)
-        return t
+      setEma(prev => {
+        const next = mix * prev + (1 - mix) * mag
+        if (debounce > 0) {
+          setDebounce(d => d - 1)
+        } else if (prev < g && next > g + 0.1) {
+          increment()
+          setDebounce(0.7 * sampleFrequencyHz / walkFrequencyHz)
+        }
+        return next
       })
     }
+
     acc.addEventListener('reading', handler)
     acc.addEventListener('error', console.log)
     acc.start()
@@ -235,9 +279,9 @@ const StepCounter = () => {
   return (
     <div className={`step-counter ${enabled ? 'enabled' : 'disabled'}`}
          onClick={() => setEnabled(on => !on)}
-         onDoubleClick={() => setStepCount(0)}>
+         onDoubleClick={clear}>
       <span className='emoji'>👟</span>
-      <span className='value'>{stepCount}</span>
+      <span className='value'>{stepCount || '---'}</span>
     </div>
   )
 }
@@ -245,7 +289,7 @@ const StepCounter = () => {
 
 const parseHeartRate = data => {
   const flags = data.getUint8(0)
-  const result = {}
+  const result = {utc: dayjs().unix()}
   let index = 1
   if (flags & 0x01) {
     result.heartRate = data.getUint16(index, /* littleEndian= */true)
@@ -271,44 +315,51 @@ const parseHeartRate = data => {
 }
 
 
-const HeartRate = () => {
+const HeartRateMonitor = ({ heartRate, addMeasurement, clear }) => {
   const [enabled, setEnabled] = useState(false)
   const [bluetoothDevice, setBluetoothDevice] = useState(null)
   const [heartRateMonitor, setHeartRateMonitor] = useState(null)
 
-  const [rrs, setRrs] = useState([])
-  const [heartRate, setHeartRate] = useState(0)
-
   useEffect(() => {
     console.log('heart rate monitor is', enabled ? 'enabled' : 'disabled')
+
     if (!enabled) return
+
     navigator.bluetooth
       .requestDevice({ filters: [{ services: ['heart_rate'] }] })
-      .then(device => setBluetoothDevice(device))
-      .catch(console.log)
+      .then(setBluetoothDevice)
+      .catch(e => {
+        console.log(e.message)
+        setEnabled(false)
+      })
+
     return () => setBluetoothDevice(null)
   }, [enabled])
 
   useEffect(() => {
     if (!bluetoothDevice) return
+
     bluetoothDevice
       .gatt.connect()
       .then(server => server.getPrimaryService('heart_rate'))
       .then(service => service.getCharacteristic('heart_rate_measurement'))
-      .then(hrm => setHeartRateMonitor(hrm))
-      .catch(console.log)
+      .then(setHeartRateMonitor)
+      .catch(e => {
+        console.log(e.message)
+        setEnabled(false)
+      })
+
     return () => setHeartRateMonitor(null)
   }, [bluetoothDevice])
 
   useEffect(() => {
     if (!heartRateMonitor) return
-    const sample = e => {
-      const data = parseHeartRate(e.target.value)
-      if (data.rrs) setRrs(rrs => [...rrs, ...data.rrs])
-      if (data.heartRate) setHeartRate(data.heartRate)
-    }
+
+    const sample = e => addMeasurement(parseHeartRate(e.target.value))
+
     heartRateMonitor.addEventListener('characteristicvaluechanged', sample)
     heartRateMonitor.startNotifications()
+
     return () => {
       heartRateMonitor.stopNotifications()
       heartRateMonitor.removeEventListener('characteristicvaluechanged', sample)
@@ -316,17 +367,49 @@ const HeartRate = () => {
   }, [heartRateMonitor])
 
   return (
-    <div className={`heart-rate ${enabled ? 'enabled' : 'disabled'}`}
-         onDoubleClick={() => { setRrs([]); setHeartRate(0) }}
+    <div className={`heart-rate-monitor ${enabled ? 'enabled' : 'disabled'}`}
+         onDoubleClick={clear}
          onClick={() => setEnabled(on => !on)}>
       <span className='emoji'>💗</span>
-      <span className='value'>{heartRate > 0 ? heartRate : '---'}</span>
+      <span className='value'>{heartRate || '---'}</span>
     </div>
   )
 }
 
 
-const Workout = () => useParams().id === 'new' ? <NewWorkout /> : <ExistingWorkout />
+const PathTracker = ({ recent, distance, addMeasurement, clear, samplePeriodSec }) => {
+  const [enabled, setEnabled] = useState(false)
+
+  useEffect(() => {
+    console.log('geo tracker is', enabled ? 'enabled' : 'disabled')
+
+    if (!enabled) return
+
+    useGeo().then(addMeasurement).catch(() => setEnabled(false))
+
+    const handle = setInterval(() => useGeo({
+      timeout: 800 * samplePeriodSec,
+      maximumAge: 2000 * samplePeriodSec,
+      enableHighAccuracy: true,
+    }).then(addMeasurement)
+      .catch(e => {
+        console.log(e.message)
+        setEnabled(false)
+      }), 1000 * samplePeriodSec)
+
+    return () => clearInterval(handle)
+  }, [enabled])
+
+  return (
+    <div className={`path-tracker ${enabled ? 'enabled' : 'disabled'}`}
+         onDoubleClick={clear}
+         onClick={() => setEnabled(on => !on)}>
+      <span className='emoji'>🗺️</span>
+      <span className='value'>{recent ? `${lib.formatDegrees(recent.coords.latitude)}, ${lib.formatDegrees(recent.coords.longitude)}` : '---'}</span>
+      <span className='distance'>{`${distance} m`}</span>
+    </div>
+  )
+}
 
 
 export { Workout }

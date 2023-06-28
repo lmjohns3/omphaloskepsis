@@ -2,6 +2,7 @@
 
   h1
     display flex
+    margin 0.3em 0
 
     *
       flex 0 0 auto
@@ -10,7 +11,8 @@
       flex 1 1 auto
 
     button.start
-      font-size 0.6em
+      font-size 0.8em
+      margin-right 0.5em
       padding 0 0.5em
 
     select
@@ -20,15 +22,25 @@
       padding 0 0.2em
 
   h2
-    margin-top 1em
+    margin-top 0.5em
 
-  .goal
-    font-size larger
+  .active-set
     margin 0.5em 0
 
+    button.finish
+      margin-right 0.5em
+
     img
-      max-width 4em
-      max-height 4em
+      max-width 6em
+      max-height 6em
+
+    .finalize
+      input
+        width 6em
+
+    .targets
+      span
+        display block
 
   iframe
     aspect-ratio 16 / 9
@@ -36,9 +48,10 @@
     width 560px
 
   .step-counter
-  .heart-rate
+  .path-tracker
+  .heart-rate-monitor
     &.disabled
-      opacity 0.3
+      opacity 0.5
     &.enabled
       opacity 1
 
@@ -69,11 +82,15 @@
           background transparent
 
     button.remove
-      font-size 0.8em
-      opacity 0.5
+    button.update-all
+      font-size 0.7em
+      opacity 0.4
 
       &:hover
         opacity 1
+
+    button.update-all
+      margin-left 0.5em
 
   .exercises
   .tags
