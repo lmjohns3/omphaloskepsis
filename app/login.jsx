@@ -1,8 +1,8 @@
 import React, { useEffect, useContext, useRef, useState } from 'react'
-import { useHistory, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 import { apiPost } from './api.jsx'
-import { AccountContext } from './account.jsx'
+import { useAuth } from './auth.jsx'
 
 import './login.styl'
 
@@ -11,8 +11,9 @@ const validEmailPattern = new RegExp(/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z
 
 
 const Login = () => {
-  const history = useHistory()
+  const navigate = useNavigate()
   const location = useLocation()
+  const { handleToken } = useAuth()
 
   const emailInput = useRef(null)
   const passwordInput = useRef(null)
@@ -23,8 +24,6 @@ const Login = () => {
   const [needsEmail, setNeedsEmail] = useState(true)
   const [isValidEmail, setIsValidEmail] = useState(false)
 
-  const { setAccount } = useContext(AccountContext)
-
   useEffect(() => { setIsValidEmail((validEmailPattern.test(email))) }, [email])
 
   useEffect(() => { (needsEmail ? emailInput : passwordInput).current.focus() }, [needsEmail])
@@ -33,15 +32,9 @@ const Login = () => {
     e.preventDefault()
     setError(null)
     apiPost('login', { email, password })
-      .then(res => {
-        document.getElementById('csrf-token').setAttribute('content', res.csrf)
-        setAccount(res.account)
-        history.push(location.search.replace(/.*\bthen=([^&]+).*/, '$1') || '/timeline/')
-      })
-      .catch(err => {
-        setPassword('')
-        setError('Incorrect!')
-      })
+      .then(handleToken)
+      .then(() => navigate(location.search.replace(/.*\bthen=([^&]+).*/, '$1') || '/timeline/'))
+      .catch(err => { setPassword(''); setError('Incorrect!') })
   }
 
   return (
@@ -69,19 +62,4 @@ const Login = () => {
 }
 
 
-const Logout = () => {
-  const history = useHistory()
-  const { setAccount } = useContext(AccountContext)
-
-  useEffect(() => {
-    apiPost('logout').then(() => {
-      setAccount(null)
-      history.replace('/')
-    })
-  }, [])
-
-  return <div className='logout'></div>
-}
-
-
-export { Login, Logout }
+export { Login }

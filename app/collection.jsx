@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useHistory, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import { apiRead } from './api.jsx'
 import { Map } from './geo.jsx'
@@ -24,10 +24,10 @@ const Collection = () => {
 
 
 const Snapshot = ({ snapshot }) => {
-  const history = useHistory()
+  const navigate = useNavigate()
 
   return (
-    <div className='snapshot' onClick={() => history.push(`/snapshot/${snapshot.id.toString(36)}/`)}>
+    <div className='snapshot' onClick={() => navigate(`/snapshot/${snapshot.id.toString(36)}/`)}>
       {snapshot.utc}
       {snapshot.note}
     </div>

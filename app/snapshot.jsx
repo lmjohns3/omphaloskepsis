@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useHistory, useParams } from 'react-router-dom'
+import { useLoaderData, useNavigate } from 'react-router-dom'
 import showdown from 'showdown'
 
 import { apiRead, apiUpdate, apiDelete } from './api.jsx'
@@ -18,13 +18,10 @@ const Snapshot = () => {
     showdown.setOption('literalMidWordAsterisks', true)
   }, [])
 
-  const id = parseInt(useParams().id, 36)
-  const history = useHistory()
-  const [snapshot, setSnapshot] = useState(null)
+  const navigate = useNavigate()
+  const [snapshot, setSnapshot] = useState(useLoaderData())
 
-  useEffect(() => { apiRead(`snapshot/${id}`).then(setSnapshot) }, [id])
-
-  const update = data => apiUpdate(`snapshot/${id}`, data).then(setSnapshot)
+  const update = data => apiUpdate(`snapshot/${snapshot.id}`, data).then(setSnapshot)
 
   return snapshot ? (
     <div className='snapshot'>
@@ -37,7 +34,7 @@ const Snapshot = () => {
         <Text value={snapshot.note} update={v => update({ note: v })} />
         <button className='delete' onClick={() => {
                   if (confirm('Really delete?')) {
-                    apiDelete(`snapshot/${id}`).then(() => history.push('/timeline/'))
+                    apiDelete(`snapshot/${snapshot.id}`).then(() => navigate(-1))
                   }
                 }}>🗑️</button>
       </div>
