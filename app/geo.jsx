@@ -1,6 +1,6 @@
 import proj4 from 'proj4'
 import React from 'react'
-import { Map as Leaflet, TileLayer } from 'react-leaflet'
+import { MapContainer, TileLayer } from 'react-leaflet'
 
 import 'leaflet/dist/leaflet.css'
 
@@ -38,12 +38,12 @@ const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
     watercolor: 'https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png'
   }
   return (
-    <Leaflet center={[lat, lng]}
+    <MapContainer center={[lat, lng]}
              zoom={zoom || 10}
              onViewportChanged={onChanged ? vp => onChanged(vp.center) : null}>
       <TileLayer url={urls[tiles || 'imagery']}
                  attribution={attributions[tiles || 'imagery']} />
-    </Leaflet>
+    </MapContainer>
   )
   // {false ? <Marker position={[lat, lng]}><Popup>Here!</Popup></Marker> : null}
 }
