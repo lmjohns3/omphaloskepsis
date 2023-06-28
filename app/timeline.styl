@@ -44,103 +44,95 @@
       background-image repeating-linear-gradient(
         50deg, transparent 0px, hsla(0, 0, 0, 0.1) 2px, transparent 4px, transparent 15px)
 
-    .add
-      position absolute
-      top 0.25rem
-      z-index 1000
+  .add
+    position absolute
+    top 0.25rem
+    z-index 1000
 
-      span
-        background hsl(220deg, 80%, 90%)
-        border-radius 0.3em
-        font-size 0.9em
+    span
+      background hsl(220deg, 80%, 90%)
+      border-radius 0.3em
+      font-size 0.9em
+      left 0
+      line-height 1.389
+      height 1.389em
+      position absolute
+      top 0
+      width 1.389em
+
+    #add-snapshot
+      left -1.5em
+
+    #add-workout
+      left 1.5em
+
+  .snapshot
+    align-items stretch
+    background transparent
+    cursor pointer
+    display flex
+    height 1.5em
+    margin-left -2.5em
+    position absolute
+    width 8em
+    z-index 10
+
+    .marker
+    .button
+      border solid 2px #888
+      text-align center
+      width 3em
+
+    .marker
+      background var(--coolwarm-0)
+      border-radius 0.2em
+      color #000
+      &.neg.pol-3
+        background var(--coolwarm-m3)
+      &.neg.pol-2
+        background var(--coolwarm-m2)
+      &.neg.pol-1
+        background var(--coolwarm-m1)
+      &.pos.pol-1
+        background var(--coolwarm-p1)
+      &.pos.pol-2
+        background var(--coolwarm-p2)
+      &.pos.pol-3
+        background var(--coolwarm-p3)
+      &.wakeup
+        background #888
+
+    .button
+      background #fff
+      color #111
+      position relative
+      width 2.5em
+      z-index -1
+
+      &.delete
+        color #c00
+        border-color #c00
+        border-right-width 0
+        border-radius 1.5em 0 0 1.5em
+        left 2.7em
+
+      &.move
+        border-left-width 0
+        border-radius 0 1.5em 1.5em 0
+        left -2.7em
+
+    &.activated
+      z-index 1001
+
+      .button
+        z-index 100
         left 0
-        line-height 1.389
-        height 1.389em
-        position absolute
-        top 0
-        width 1.389em
 
-      #add-snapshot
-        left -1.5em
-
-      #add-workout
-        left 1.5em
-
-    .snapshot
-      align-items stretch
-      background transparent
-      cursor pointer
-      display flex
-      height unquote('calc(1.5rem + 4px)')
-      margin-left -3rem
-      position absolute
-      top unquote('calc((2rem - (1.5rem + 4px)) / 2)')
-      width 8rem
-      z-index 10
-
-      .marker
-      .button
-        border solid 2px #888
-        text-align center
-        width 3rem
-
-      .marker
-        background var(--coolwarm-0)
-        border-radius 0.2rem
-        color #000
-        &.neg.pol-3
-          background var(--coolwarm-m3)
-        &.neg.pol-2
-          background var(--coolwarm-m2)
-        &.neg.pol-1
-          background var(--coolwarm-m1)
-        &.pos.pol-1
-          background var(--coolwarm-p1)
-        &.pos.pol-2
-          background var(--coolwarm-p2)
-        &.pos.pol-3
-          background var(--coolwarm-p3)
-        &.wakeup
-          background #888
-
-      .button
-        background #fff
-        color #111
-        position relative
-        width 2.5rem
-        z-index -1
-
-        &.delete
-          color #c00
-          border-color #c00
-          border-right-width 0
-          border-radius 1.5rem 0 0 1.5rem
-          left 2.7rem
-
-        &.move
-          border-left-width 0
-          border-radius 0 1.5rem 1.5rem 0
-          left -2.7rem
-
-      &.activated
-        z-index 1001
-
-        .button
-          z-index 100
-          left 0
-
-    .collection
-      background #888
-      border-radius 0.1rem
-      height 0.5rem
-      opacity 0.5
-      position absolute
-      top 0.75rem
-      z-index 1
-
-      &.workout
-        background #f90
-        border solid 1px #c60
-        cursor pointer
-        height 1rem
-        top unquote('calc(0.5rem - 1px)')
+  .duration
+    background #888
+    border-radius 0.1em
+    height 0.5em
+    opacity 0.5
+    position absolute
+    top 0.75em
+    z-index 1

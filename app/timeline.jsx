@@ -5,12 +5,12 @@ dayjs.extend(require('dayjs/plugin/duration'))
 dayjs.extend(require('dayjs/plugin/minMax'))
 
 import React, { useEffect, useRef, useState } from 'react'
-import { useHistory, useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import SunCalc from 'suncalc'
 
 import { apiCreate, apiRead, apiUpdate, apiDelete } from './api.jsx'
 import { useActivated, useRefresh } from './common.jsx'
-import { useGeo } from './geo.jsx'
+import lib from './lib.jsx'
 
 import './timeline.styl'
 
@@ -22,7 +22,7 @@ const dayFromKey = key => dayjs.utc(key, KEY_FMT)
 // Maintain a moving window over a contiguous group of days. Total number of days
 // in the window is `2 * size + 1`.
 const dayWindow = size => {
-  const history = useHistory()
+  const navigate = useNavigate()
   const centerKey = (useLocation().hash || `#${keyForDay(dayjs.utc())}`).slice(1)
   const [dayKeys, setDayKeys] = useState([])
 
@@ -34,7 +34,7 @@ const dayWindow = size => {
       const day = ctr.add(i, 'd')
       if (!day.isAfter(limit)) newKeys.push(keyForDay(day))
     }
-    history.replace(`#${centerKey}`)
+    navigate(`#${centerKey}`, { replace: true })
     setDayKeys(newKeys)
   }
 
@@ -70,10 +70,13 @@ const cacheSnapshots = dayKeys => {
   const [cache, setCache] = useState({})
   const loadedDays = useRef({})
 
-  const update = snapshot => setCache(cache_ => {
-    if (snapshot?.id) return { ...cache_, [snapshot.id]: snapshot }
-    const { [snapshot]: _, ...remaining } = cache_
-    return remaining
+  const update = snapshot => setCache(cur => {
+    if (snapshot?.id) {
+      cur[snapshot.id] = snapshot
+    } else {
+      delete cur[snapshot]
+    }
+    return { ...cur }
   })
 
   useEffect(() => {
@@ -100,18 +103,17 @@ const Timeline = () => {
   const [groups, setGroups] = useState({ days: {}, collections: {} })
 
   useEffect(() => {
-    const dayGroups = {}, colls = {}
+    const days = {}, collections = {}
     Object.values(cache).forEach(snapshot => {
-      const dayKey = keyForDay(dayjs.unix(snapshot.utc).tz('UTC'))
-      if (!(dayKey in dayGroups)) dayGroups[dayKey] = []
-      dayGroups[dayKey].push(snapshot.id)
+      const key = keyForDay(dayjs.unix(snapshot.utc).tz('UTC'))
+      if (!(key in days)) days[key] = []
+      days[key].push(snapshot.id)
       const cid = snapshot.collection_id
-      if (cid) {
-        if (!(cid in colls)) colls[cid] = []
-        colls[cid].push(snapshot.id)
-      }
+      if (!cid) return
+      if (!(cid in collections)) collections[cid] = []
+      collections[cid].push(snapshot.id)
     })
-    setGroups({ days: dayGroups, collections: colls })
+    setGroups({ days, collections })
   }, [cache])
 
   return (
@@ -127,8 +129,8 @@ const Timeline = () => {
                                yyyymmdd={key}
                                refresh={refresh}
                                groups={groups}
-                               cache={cache}
-                               updateCache={updateCache} />)}
+                               snapshots={cache}
+                               update={updateCache} />)}
     </div>
   )
 }
@@ -142,7 +144,7 @@ const pct = (begin, end) => `${end.diff(begin) / 864000}%`
 // Given a time in UTC, and some snapshots (from which we extract lat/lng), compute
 // sunrise and sunset times for days around then.
 const geoMoments = (utc, snapshots) => {
-  const geos = snapshots.filter(e => (e.lat && e.lng))
+  const geos = snapshots.filter(e => e && e.lat && e.lng)
   const { lat, lng } = geos.length > 0 ? geos[0] : {}
 
   if (!lat || !lng) return { tm1: {}, t: {}, tp1: {} }
@@ -164,38 +166,29 @@ const geoMoments = (utc, snapshots) => {
 // Snapshots in the timeline are grouped and presented by day. A Day here is a
 // component that shows a single 24-hour period (currently assumed to be
 // midnight-to-midnight in UTC).
-const Day = ({ yyyymmdd, refresh, cache, groups, updateCache }) => {
+const Day = ({ yyyymmdd, refresh, snapshots, groups, update }) => {
   const left = dayFromKey(yyyymmdd)
-  const snapshots = (yyyymmdd in groups.days) ? groups.days[yyyymmdd].map(sid => cache[sid]) : []
-  const sun = geoMoments(left, snapshots)
+  const snaps = (yyyymmdd in groups.days) ? groups.days[yyyymmdd].map(sid => snapshots[sid]) : []
+  const sun = geoMoments(left, snaps)
   const [ref, isActivated, setIsActivated] = useActivated()
 
-  const singletonCollections = Object.values(groups.collections).filter(sids => sids.length === 1).length
-
-  const createSnapshot = () => {
-    console.log(snapshots)
-    console.log(groups)
-    console.log(singletonCollections)
-  }
-
-  const seenCollections = {}
+  const seen = {}
   const children = []
-
-  snapshots.forEach(snapshot => {
-    const cid = snapshot.collection_id
-    if (cid && !seenCollections[cid] && groups.collections[cid]) {
-      seenCollections[cid] = true
+  snaps.forEach(snap => {
+    if (!snap) return
+    const cid = snap.collection_id
+    if (cid && !seen[cid] && groups.collections[cid]) {
+      seen[cid] = true
       children.push(<Collection key={`collection-${cid}`}
                                 left={left}
-                                collection={{ id: cid, snapshots: groups.collections[cid] }}
-                                snapshots={snapshots}
-                                updateCache={updateCache}
+                                collectionId={cid}
+                                update={update}
                                 refresh={refresh} />)
     } else {
-      children.push(<Snapshot key={`snapshot-${snapshot.id}`}
+      children.push(<Snapshot key={`snapshot-${snap.id}`}
                               left={left}
-                              snapshot={snapshot}
-                              updateCache={updateCache}
+                              snapshot={snap}
+                              update={update}
                               refresh={refresh} />)
     }
   })
@@ -207,7 +200,8 @@ const Day = ({ yyyymmdd, refresh, cache, groups, updateCache }) => {
                      isActivated ? 'activated' : '',
                      left.format('ddd'),
                      left.format('MMM'),
-                     `the-${left.format('D')}`].join(' ')} ref={ref}
+                     `the-${left.format('D')}`].join(' ')}
+         ref={ref}
          onMouseDown={() => setIsActivated(true)}
          onTouchStart={() => setIsActivated(true)}>
       {!sun.t.sunset ? null : <>
@@ -220,22 +214,17 @@ const Day = ({ yyyymmdd, refresh, cache, groups, updateCache }) => {
       </>}
       <span className='label'>{left.format(left.date() === 1 ? 'dd D MMM YYYY' : 'dd D')}</span>
       {children}
-      {keyForDay(dayjs.utc()) === yyyymmdd ? <Now updateCache={updateCache} /> : null}
+      {keyForDay(dayjs.utc()) === yyyymmdd ? <Now /> : null}
     </div>
   )
 }
 
 
 // A widget that shows the current time on the timeline.
-const Now = ({ updateCache }) => {
-  const history = useHistory()
+const Now = () => {
+  const navigate = useNavigate()
   const [ref, isActivated, setIsActivated] = useActivated()
   const [now, setNow] = useState(dayjs.utc())
-
-  const create = (dtype, args) => {
-    console.log(dtype, args)
-    apiCreate(`${dtype}s`, args).then(res => history.push(`/${dtype}/${res.id.toString(36)}/`))
-  }
 
   useEffect(() => {
     const id = setInterval(() => setNow(dayjs.utc()), 60000)
@@ -249,11 +238,13 @@ const Now = ({ updateCache }) => {
             style={{left: pct(now.startOf('d'), now)}}>
       {isActivated ? (
         <>
-          <span id='add-snapshot' onClick={() => create('snapshot')}>🗒️️</span>
-          <span id='add-sleep' onClick={() => create('collection', { tags: ['sleep'] })}>💤</span>
-          <span id='add-workout' onClick={() => history.push('/workout/new/')}>🏋️</span>
+          <span id='add-snapshot' onClick={() => apiCreate('snapshots').then(
+                  res => navigate(`/snapshot/${res.id.toString(36)}/`))}>🗒️️</span>
+          <span id='add-sleep' onClick={() => apiCreate('collections', { tags: ['sleep'] }).then(
+                  res => navigate(`/snapshot/${res.snapshots[0].id.toString(36)}/`))}>💤</span>
+          <span id='add-workout' onClick={() => navigate('/workout/new/')}>🏋️</span>
         </>
-      ): '+'}
+      ) : '+'}
     </button>
   )
 }
@@ -262,34 +253,55 @@ const Now = ({ updateCache }) => {
 // A Collection is a group of related Snapshots -- for example, a period of sleep
 // marked by a beginning (going to sleep) and end (waking up) snapshot. Visually,
 // collections are just shown as a stripe between the first and last Snapshots.
-const Collection = ({ left, collectionId, snapshots, addSnapshot, removeSnapshot, refresh }) => {
-  const history = useHistory()
-  const first = dayjs.unix(snapshots[0].utc).tz('UTC')
-  const last = dayjs.unix(snapshots.slice(-1)[0].utc).tz('UTC')
-  const right = left.add(24, 'h').subtract(1, 's')
-  const wakeup = dayjs.min(dayjs.utc(), left.add(20, 'h'))
+const Collection = ({ left, collectionId, update, refresh }) => {
+  const navigate = useNavigate()
 
-  // For sleep collections with one snapshot, show a button that adds another snapshot.
-  return <>
-    <div key={`collection-${collectionId}`}
-         className={`collection`}
-         title={dayjs.duration(last.diff(first))
-                     .toISOString()  // Produces something like 'PT3H2M38S'
-                     .replace(/PT/, '')
-                     .replace(/\d+S$/, '')  // Trim off seconds.
-                     .toLowerCase()}
-         onClick={() => history.push(`/collection/${collectionId.toString(36)}/`)}
-         style={{ left: pct(left, first), width: pct(first, wakeup) }}></div>
-    <div key={`collection-${collectionId}-wakeup`}
-         className='snapshot'
-         style={{ left: pct(left, wakeup) }}
-         onClick={() => apiCreate('snapshots', {
-           utc: wakeup.unix(),
-           collectionid: collectionId,
-         }).then(res => history.push(`/snapshot/${res.id.toString(36)}/`))}>
-      <div className='marker wakeup'>⏰</div>
-    </div>
-  </>
+  const [collection, setCollection] = useState(null)
+
+  useEffect(() => { apiRead(`collection/${collectionId}`).then(setCollection) }, [])
+
+  if (!collection) return null
+
+  const isWorkout = collection.tags.indexOf('workout') >= 0
+  const isSleep = collection.tags.indexOf('sleep') >= 0
+
+  const allSnaps = collection.snapshots
+  const visibleSnaps = collection.snapshots.filter(snap => {
+    const diff = snap.utc - left.unix()
+    return 0 < diff && diff < 86400
+  })//.sort((a, b) => b.utc - a.utc)
+
+  const right = dayjs.min(dayjs.utc(), left.add(86399, 's'))
+  const first = visibleSnaps.length && allSnaps.length && visibleSnaps[0].id === allSnaps[0].id
+        ? dayjs.unix(allSnaps[0].utc).tz('UTC') : left
+  const last = lib.last(visibleSnaps).id === lib.last(allSnaps).id
+        ? dayjs.unix(lib.last(allSnaps).utc).tz('UTC') : right
+
+  return (
+    <>
+      {(allSnaps.length < 2 || isWorkout) ? null : (
+        <div className='duration'
+             title={`${collection.tags.join(' ')} ${lib.formatDuration(lib.last(allSnaps).utc - allSnaps[0].utc)}`}
+             style={{ left: pct(left, first), width: pct(first, last) }}
+             onClick={() => navigate(`/collection/${collectionId.toString(36)}/`)}></div>
+      )}
+      <Snapshot left={left}
+                icon={isWorkout ? '🏋️' : null}
+                snapshot={visibleSnaps[0]}
+                update={update}
+                refresh={refresh} />
+      {allSnaps.length === 1 && isSleep ? (
+        <div className='snapshot wakeup'
+             style={{ left: pct(left, right) }}
+             onClick={() => apiCreate('snapshots', {
+               utc: right.unix(),
+               collection_id: collectionId,
+             }).then(res => navigate(`/snapshot/${res.id.toString(36)}/`))}>
+          <div className='marker'>⏰</div>
+        </div>
+      ) : null}
+    </>
+  )
 }
 
 
@@ -297,8 +309,8 @@ const Collection = ({ left, collectionId, snapshots, addSnapshot, removeSnapshot
 // Visually, Snapshots show up as a marker that, when tapped, toggles a
 // context menu of edit/delete tools. The "move" tool lets us drag Snapshots
 // to new times in the Timeline.
-const Snapshot = ({ left, snapshot, updateCache, refresh }) => {
-  const history = useHistory()
+const Snapshot = ({ left, snapshot, update, refresh, icon }) => {
+  const navigate = useNavigate()
   const [ref, isActivated, setIsActivated] = useActivated()
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [dragStart, setDragStart] = useState(null)
@@ -312,17 +324,18 @@ const Snapshot = ({ left, snapshot, updateCache, refresh }) => {
   const doDelete = () => {
     if (!isActivated) return
     if (needsConfirmation) {
-      apiDelete(`snapshot/${snapshot.id}`).then(() => updateCache(snapshot.id))
+      apiDelete(`snapshot/${snapshot.id}`).then(() => update(snapshot.id))
       setNeedsConfirmation(false)
     } else {
       setNeedsConfirmation(true)
     }
   }
 
-  const doEdit = () => history.push(
-    snapshot.workout_id ? `/workout/${snapshot.workout_id.toString(36)}/`
-      : snapshot.collection_id ? `/collection/${snapshot.collection_id.toString(36)}/`
-      : `/snapshot/${snapshot.id.toString(36)}/`)
+  const doEdit = () => navigate(
+    snapshot.collection_id
+      ? `/collection/${snapshot.collection_id.toString(36)}/`
+      : `/snapshot/${snapshot.id.toString(36)}/`
+  )
 
   const onDragStart = e => {
     if (e.button !== 0) return
@@ -358,7 +371,7 @@ const Snapshot = ({ left, snapshot, updateCache, refresh }) => {
         .add(dragDelta.x, 'm')
         .subtract(dragDelta.y, 'd')
         .unix()
-      apiUpdate(`snapshot/${snapshot.id}`, { utc: snapshot.utc }).then(refresh)
+      apiUpdate(`snapshot/${snapshot.id}`, { utc: snapshot.utc }).then(update)
       setDragStart(null)
       setDragDelta({ x: 0, y: 0 })
       setIsActivated(false)
@@ -378,17 +391,21 @@ const Snapshot = ({ left, snapshot, updateCache, refresh }) => {
   const abs = 100 * Math.abs(mood)
 
   return (
-    <div ref={ref} className={`snapshot ${isActivated ? 'activated' : ''}`}
-         style={{ left: pct(left, dayjs.unix(snapshot.utc).add(dragDelta.x, 'm')),
-                  top: `calc(0.1rem + ${dayHeight * dragDelta.y}px)` }}>
-      <span className='button delete'
-            onClick={doDelete}>🗑️ {needsConfirmation ? '?' : null}</span>
+    <div ref={ref}
+         id={`snap-${snapshot.id}`}
+         className={`snapshot ${isActivated ? 'activated' : ''}`}
+         style={{
+           left: pct(left, dayjs.unix(snapshot.utc).add(dragDelta.x, 'm')),
+           top: `calc(0.25rem + ${dayHeight * dragDelta.y}px)`,
+         }}>
+      <span className='button delete' onClick={doDelete}>🗑️ {needsConfirmation ? '?' : null}</span>
       <span className={`marker ${pol} pol-${Math.floor(abs / 26)}`}
-            onMouseDown={() => isActivated ? doEdit() : setIsActivated(true)}>{
-              dragStart ? '--:--' : isActivated ? '🔍' : HHmm}</span>
-      <span className='button move'
-            onMouseDown={onDragStart}
-            onTouchStart={onDragStart}>☷</span>
+            onMouseDown={
+              () => snapshot.workout_id
+                ? navigate(`/workout/${snapshot.workout_id.toString(36)}/`)
+                : isActivated ? doEdit() : setIsActivated(true)
+            }>{dragStart ? '☷' : isActivated ? '🔍' : icon || HHmm}</span>
+      <span className='button move' onMouseDown={onDragStart} onTouchStart={onDragStart}>☷</span>
     </div>
   )
 }
