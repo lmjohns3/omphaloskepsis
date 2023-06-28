@@ -8,7 +8,7 @@ import { useGeo } from './geo.jsx'
 
 
 const csrfHeader = () => ({
-  'x-omphalos-csrf': document.getElementById('csrf-token').getAttribute('content')
+  'x-omphalos-csrf': document.getElementById('csrf').getAttribute('content')
 })
 
 
