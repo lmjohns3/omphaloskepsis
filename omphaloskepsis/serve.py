@@ -59,20 +59,17 @@ def _populate_account():
 
 @app.before_request
 def _is_api_request_ok():
-    req = flask.request
-    if not req.url.startswith('/api/'):
+    if flask.request.path.startswith('/api/login'):
         return
-    if req.url.startswith('/api/login'):
-        return
-    if 'aid' not in flask.session:
+    if flask.request.path.startswith('/api/') and 'aid' not in flask.session:
         flask.abort(401)
-    if req.method == 'GET':
-        return
-    if 'csrf' not in flask.session:
-        flask.abort(400)
-    if 'x-omphaloskepsis-csrf' not in req.headers:
-        flask.abort(400)
-    if flask.session['csrf'] != req.headers['x-omphaloskepsis-csrf']:
+
+
+@app.before_request
+def _check_csrf():
+    session = flask.session.get('csrf', 0)
+    header = flask.request.headers.get('x-omphaloskepsis-csrf', 1)
+    if flask.request.method != 'GET' and session != header:
         flask.abort(400)
 
 

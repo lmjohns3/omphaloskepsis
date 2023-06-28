@@ -8,11 +8,11 @@ import { useGeo } from './geo.jsx'
 
 
 const csrfHeader = () => ({
-  'x-omphalos-csrf': document.getElementById('csrf').getAttribute('content')
+  'x-omphaloskepsis-csrf': document.getElementById('csrf').getAttribute('content')
 })
 
 
-const url = path => `/api/${path}/`
+const api = path => `/api/${path}/`
 
 
 const fetchJson = (url, args) => fetch(url, args)
@@ -31,17 +31,17 @@ const apiCreate = (path, args) => useGeo().then(geo => apiUpdate(path, {
 }))
 
 
-const apiRead = (path, args) => fetchJson(url(path) + '?' + new URLSearchParams(args))
+const apiRead = (path, args) => fetchJson(api(path) + '?' + new URLSearchParams(args))
 
 
-const apiUpdate = (path, args) => fetchJson(url(path), {
+const apiUpdate = (path, args) => fetchJson(api(path), {
   method: 'POST',
   headers: { 'Content-Type': 'application/json;charset=utf-8', ...csrfHeader() },
   body: JSON.stringify(args)
 })
 
 
-const apiDelete = path => fetchJson(url(path), { method: 'DELETE', headers: csrfHeader() })
+const apiDelete = path => fetchJson(api(path), { method: 'DELETE', headers: csrfHeader() })
 
 
 const apiPost = apiUpdate
