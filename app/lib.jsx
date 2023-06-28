@@ -74,7 +74,7 @@ export default {
 
   // Many fits to experimental "max hr" data based on age/gender, average them.
   // https://www.trailrunnerworld.com/maximum-heart-rate-calculator/
-  maxHeartRateBpm = (age_y, is_male = null) => {
+  maxHeartRateBpm: (age_y, is_male = null) => {
     const models = [220 - age_y, 217 - 0.85 * age_y, 206.9 - 0.67 * age_y]
     if (is_male === true || is_male === false) {
       models.push(is_male ? 202 - 0.55 * age_y : 216 - 1.09 * age_y)
