@@ -38,31 +38,19 @@ def init(ctx, config, emails):
     engine = sqlalchemy.create_engine(f'sqlite:///{db_path}')
     accounts.Model.metadata.create_all(engine)
     sess = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=False)()
-
     for email in emails:
-        password = click.prompt(
-            f'Password for {email}', hide_input=True, confirmation_prompt=False)
-        account = accounts.Account(
-            emails=[accounts.Email(email=email, validated_utc=time.time())],
-            password=accounts.Password(password=bcrypt.hashpw(
-                password.encode('utf8'), bcrypt.gensalt())))
+        account = accounts.Account(auth=accounts.Auth(
+            email=email,
+            validated_utc=time.time(),
+            password=bcrypt.hashpw(
+                click.prompt(
+                    f'Password for {email}',
+                    hide_input=True,
+                    confirmation_prompt=False,
+                ).encode('utf8'), bcrypt.gensalt())))
         sess.add(account)
         sess.commit()
-
-        db_path = account.get_database_path(root)
-        if not os.path.isdir(os.path.dirname(db_path)):
-            os.makedirs(os.path.dirname(db_path))
-        engine = sqlalchemy.create_engine(f'sqlite:///{db_path}')
-        db.Model.metadata.create_all(engine)
-        s = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=False)()
-        for name, exercise in static.get('exercises', {}).items():
-            s.add(workouts.Exercise(
-                name=name,
-                about=exercise.get('about'),
-                image=exercise.get('image'),
-                video=exercise.get('video'),
-                tags=exercise.get('tags', ())))
-        s.commit()
+        account.create_db(root)
 
 
 @cli.command()

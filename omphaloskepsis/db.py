@@ -8,6 +8,10 @@ from sqlalchemy import Column, Float, ForeignKey, Integer, LargeBinary, String, 
 Model = sqlalchemy.ext.declarative.declarative_base()
 
 
+def engine(path, echo=False):
+    return sqlalchemy.create_engine(f'sqlite:///{path}', echo=echo)
+
+
 @sqlalchemy.event.listens_for(sqlalchemy.engine.Engine, 'connect')
 def set_sqlite_pragma(dbapi_connection, connection_record):
     cur = dbapi_connection.cursor()
