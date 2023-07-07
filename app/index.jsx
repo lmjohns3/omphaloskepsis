@@ -9,12 +9,13 @@ import {
   NavLink,
   Outlet,
   RouterProvider,
+  useNavigate,
   useRouteError,
 } from 'react-router-dom'
 
 //import eruda from 'eruda'
 
-import { apiRead } from './api.jsx'
+import { apiRead, apiUpdate } from './api.jsx'
 import { Account } from './account.jsx'
 import { AuthProvider, AuthRequired, useAuth } from './auth.jsx'
 import { Collection } from './collection.jsx'
@@ -29,9 +30,8 @@ import './index.styl'
 
 
 const Index = () => {
-  const { credentials } = useAuth()
-
-  return credentials ? <Dashboard /> : <Splash />
+  const { token } = useAuth()
+  return token ? <Dashboard /> : <Splash />
 }
 
 
@@ -44,37 +44,35 @@ const Splash = () => (
 )
 
 
-const Dashboard = () => {
-  return (
-    <AuthRequired>
-      <div className='dashboard'>Dashboard.</div>
-    </AuthRequired>
-  )
-}
+const Dashboard = () => (
+  <div className='dashboard'>Dashboard.</div>
+)
+
 
 const App = () => {
+  const navigate = useNavigate()
   const { token, clearToken } = useAuth()
-
-  console.log('auth token', token)
-
-  const navs = token ? [
-    <NavLink title='Timeline View' to='/timeline/'>🗓️</NavLink>,
-    <NavLink title='Graph View' to='/graphs/'>📊️</NavLink>,
-    null,
-    <NavLink title='Settings' to='/account/'>⚙️</NavLink>,
-    <Link title='Log Out' onClick={clearToken}>🚪</Link>,
-  ] : []
 
   //useEffect(() => { eruda.init() }, [])
 
-  return (
-    <>
-      <nav><ul>{
-        navs.map((n, i) => <li key={i} className={n ? '' : 'sep'}>{n}</li>)
-      }</ul></nav>
-      <Outlet />
-    </>
-  )
+  const nav = token ? (
+    <nav>
+      <ul>
+        <li><NavLink title='Dashboard' to='/'>🖥️️</NavLink></li>
+        <li><NavLink title='Timeline' to='/timeline/'>🗓️</NavLink></li>
+        <li><NavLink title='Graphs' to='/graphs/'>📊️</NavLink></li>
+        <li className='sep'></li>
+        <li><Link title='New Note' to='#' onClick={() => apiCreate('snapshots').then(res => navigate(`/snapshot/${res.id.toString(36)}/`))}>🗒️</Link>️</li>
+        <li><Link title='Start Sleeping' to='#' onClick={() => apiCreate('collections', { tags: ['sleep'] }).then(res => navigate(`/snapshot/${res.snapshots[0].id.toString(36)}/`))}>💤</Link></li>
+        <li><Link title='New Workout' to='/workout/new/'>🏋️</Link></li>
+        <li className='sep'></li>
+        <li><NavLink title='Settings' to='/account/'>⚙️</NavLink></li>
+        <li><Link title='Log Out' onClick={clearToken}>🚪</Link></li>
+      </ul>
+    </nav>
+  ) : null
+
+  return <>{nav}<Outlet /></>
 }
 
 
@@ -84,37 +82,47 @@ const Error = err => `Error! ${Object.keys(err).join(' ')}`
 ReactDOM.createRoot(
   document.getElementById('app')
 ).render(
-  <StrictMode>
-    <RouterProvider
-      router={createBrowserRouter([{
-        path: '/',
-        element: <AuthProvider><App /></AuthProvider>,
-        //errorElement: <Error />,
-        children: [
-          { index: true, element: <Index /> },
-          { path: '/login', element: <Login /> },
-          { path: '/account', element: <AuthRequired><Account /></AuthRequired> },
-          { path: '/timeline', element: <AuthRequired><Timeline /></AuthRequired> },
-          {
-            path: '/snapshot/:id',
-            element: <AuthRequired><Snapshot /></AuthRequired>,
-            loader: ({ params }) => apiRead(`/snapshot/${params.id}/`),
-          },
-          {
-            path: '/collection/:id',
-            element: <AuthRequired><Collection /></AuthRequired>,
-            loader: ({ params }) => apiRead(`/collection/${params.id}/`),
-          },
-          {
-            path: '/workout/new',
-            element: <AuthRequired><NewWorkout /></AuthRequired>,
-          },
-          {
-            path: '/workout/:id',
-            element: <AuthRequired><Workout /></AuthRequired>,
-            loader: ({ params }) => apiRead(`/workout/${params.id}/`),
-          },
-        ],
-      }])} />
-  </StrictMode>
+  <RouterProvider
+    router={createBrowserRouter([{
+      path: '/',
+      loader: async () => {
+        try { return await apiUpdate('token') } catch (err) {}
+        return null
+      },
+      element: <AuthProvider><App /></AuthProvider>,
+      //errorElement: <Error />,
+      children: [
+        { index: true, element: <Index /> },
+        { path: '/login', element: <Login /> },
+        {
+          path: '/account',
+          element: <AuthRequired><Account /></AuthRequired>,
+        },
+        {
+          path: '/timeline',
+          loader: () => apiRead('timeline'),
+          element: <AuthRequired><Timeline /></AuthRequired>,
+        },
+        {
+          path: '/snapshot/:id',
+          loader: ({ params }) => apiRead(`snapshot/${params.id}`),
+          element: <AuthRequired><Snapshot /></AuthRequired>,
+        },
+        {
+          path: '/collection/:id',
+          loader: ({ params }) => apiRead(`collection/${params.id}`),
+          element: <AuthRequired><Collection /></AuthRequired>,
+        },
+        {
+          path: '/workout/new',
+          loader: () => apiRead('workouts'),
+          element: <AuthRequired><NewWorkout /></AuthRequired>,
+        },
+        {
+          path: '/workout/:id',
+          loader: ({ params }) => apiRead(`workout/${params.id}`),
+          element: <AuthRequired><Workout /></AuthRequired>,
+        },
+      ],
+    }])} />
 )

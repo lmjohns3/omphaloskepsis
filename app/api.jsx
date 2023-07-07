@@ -44,7 +44,4 @@ const apiUpdate = (path, args) => fetchJson(api(path), {
 const apiDelete = path => fetchJson(api(path), { method: 'DELETE', headers: csrfHeader() })
 
 
-const apiPost = apiUpdate
-
-
-export { apiCreate, apiRead, apiUpdate, apiDelete, apiPost }
+export { apiCreate, apiDelete, apiRead, apiUpdate }

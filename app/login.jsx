@@ -1,7 +1,7 @@
 import React, { useEffect, useContext, useRef, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 
-import { apiPost } from './api.jsx'
+import { apiUpdate } from './api.jsx'
 import { useAuth } from './auth.jsx'
 
 import './login.styl'
@@ -13,7 +13,7 @@ const validEmailPattern = new RegExp(/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z
 const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { handleToken } = useAuth()
+  const { token, handleToken } = useAuth()
 
   const emailInput = useRef(null)
   const passwordInput = useRef(null)
@@ -26,16 +26,21 @@ const Login = () => {
 
   useEffect(() => { setIsValidEmail((validEmailPattern.test(email))) }, [email])
 
-  useEffect(() => { (needsEmail ? emailInput : passwordInput).current.focus() }, [needsEmail])
+  useEffect(() => {
+    const ref = (needsEmail ? emailInput : passwordInput).current
+    if (ref) ref.focus()
+  }, [needsEmail])
 
   const onSubmit = e => {
     e.preventDefault()
     setError(null)
-    apiPost('login', { email, password })
+    apiUpdate('login', { email, password })
       .then(handleToken)
-      .then(() => navigate(location.search.replace(/.*\bthen=([^&]+).*/, '$1') || '/timeline/'))
+      .then(() => navigate(location.search.replace(/.*\bthen=([^&]+).*/, '$1') || '/'))
       .catch(err => { setPassword(''); setError('Incorrect!') })
   }
+
+  if (token) return <Navigate to='/' />
 
   return (
     <div className='login container'>

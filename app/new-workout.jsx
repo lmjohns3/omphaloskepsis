@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLoaderData, useNavigate, useParams } from 'react-router-dom'
 
 import { apiCreate, apiRead } from './api.jsx'
 import lib from './lib.jsx'
@@ -7,21 +7,17 @@ import lib from './lib.jsx'
 
 const NewWorkout = () => {
   const navigate = useNavigate()
-  const [config, setConfig] = useState(null)
+  const config = useLoaderData()
   const [goals, setGoals] = useState([])
   const [shuffle, setShuffle] = useState(false)
   const [repeats, setRepeats] = useState(1)
   const [activeTag, activateTag] = useState(null)
 
-  useEffect(() => { apiRead('config').then(setConfig) }, [])
-
-  if (!config) return null
-
-  const add = id => () => setGoals(cur => [ ...cur, { id } ])
+  const add = name => () => setGoals(cur => [ ...cur, { name } ])
 
   const addFromWorkout = key => () => setGoals(cur => [
     ...cur,
-    ...config.workouts[key].map(n => ({ id: config.nameToId[n] })),
+    ...config.workouts[key].map(n => ({ name: n })),
   ])
 
   const update = idx => (attr, value) => setGoals(cur => [
@@ -31,7 +27,6 @@ const NewWorkout = () => {
   ])
 
   const updateAll = (attr, value) => {
-    console.log(attr, value)
     setGoals(cur => cur.map(goal => ({ ...goal, [attr]: value })))
   }
 
@@ -39,11 +34,9 @@ const NewWorkout = () => {
     let expanded = []
     for (let i = 0; i < repeats; ++i)
       expanded.push(...(shuffle ? lib.shuffle(goals) : goals))
-    apiCreate('workouts', { tags: ['workout'], goals: expanded })
+    apiCreate('collections', { tags: ['workout'], goals: expanded })
       .then(res => navigate(`/workout/${res.id.toString(36)}/`))
   }
-
-  console.log(goals)
 
   return (
     <div className='workout new container'>

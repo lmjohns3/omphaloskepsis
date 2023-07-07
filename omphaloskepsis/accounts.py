@@ -24,7 +24,8 @@ class Account(Model):
 
     id = db.Column(db.Integer, primary_key=True, default=lambda: random.getrandbits(63))
 
-    config = db.Column(db.LargeBinary)
+    # A JSON-encoded blob of account information, used client-side.
+    config = db.Column(db.LargeBinary, default=b'{}')
 
     def open_db(self, root, echo=False):
         enc = encode_id(self.id).decode('utf8')
