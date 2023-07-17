@@ -1,6 +1,7 @@
 *
   box-sizing border-box
   margin 0
+  max-width 100%
   padding 0
 
 :root
@@ -9,8 +10,11 @@
   line-height 1.5
 
 body
-  background hsl(0deg, 50%, 100%)
-  color hsl(0deg, 50%, 10%)
+  background hsl(0deg, 0%, 10%)
+  color hsl(0deg, 0%, 90%)
+
+a
+  color hsl(210deg, 70%, 70%)
 
 code
 kbd
@@ -18,17 +22,18 @@ pre
   font-family 'Inconsolata', monospace
 
 nav
-  background hsl(45deg, 20%, 80%)
-  border-bottom solid 1px hsl(45deg, 20%, 50%)
+  background hsl(30deg, 25%, 25%)
   top 0
-  height 2em
+  height 2.5em
   position sticky
-  z-index 100
+  z-index 10
 
   ul
     align-items center
     display flex
-    padding-left 0
+    gap 0.1em
+    height 100%
+    padding 0 0.2em
 
     li
       flex 0 0 auto
@@ -37,22 +42,27 @@ nav
         flex 1 1 auto
 
       a
-        cursor pointer
-        display block
-        line-height 2
-        padding 0 0.7em
+        border-radius 1em
+        display inline-block
+        height 2em
+        line-height 2em
+        text-align center
         text-decoration none
+        width 2em
 
+        &.active
+          background-color hsla(0deg, 0%, 0%, 0.5)
         &:hover
-          background hsl(120deg, 50%, 85%)
+          background-color hsla(0deg, 0%, 50%, 0.3)
 
 ol
 ul
   list-style none
-  padding-left 1rem
+  padding-left 0
 
 input
 button
+select
   border none
   border-radius 0.3em
   font-size larger
@@ -88,6 +98,9 @@ button
 
   &:hover
     opacity 1
+
+select
+  background hsl(50deg, 50%, 93%)
 
 .leaflet-container
   width 100%

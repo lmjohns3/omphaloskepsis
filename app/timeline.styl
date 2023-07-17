@@ -1,16 +1,15 @@
 .timeline
 
   .tick
-    background #888
+    background-color hsla(0deg, 0%, 50%, 0.1)
     bottom 0
-    opacity 0.2
     position fixed
     top 0
     width 1px
     z-index 1
 
   .label
-    color #888
+    color hsla(0deg, 0%, 50%, 0.3)
     display block
     font-size smaller
     position absolute
@@ -18,9 +17,8 @@
     left 0.5rem
 
   .shadow
-    background #103
+    background-color hsla(240deg, 33%, 33%, 0.1)
     height 100%
-    opacity 0.05
     position absolute
 
   .day
@@ -36,35 +34,13 @@
 
     &.the-2, &.the-4, &.the-6, &.the-8, &.the-10, &.the-12, &.the-14, &.the-16,
     &.the-18, &.the-20, &.the-22, &.the-24, &.the-26, &.the-28, &.the-30
-      background-color hsla(50deg, 50%, 50%, 0.1)
+      background-color hsla(50deg, 30%, 30%, 0.1)
       &.Jan, &.Mar, &.May, &.Jul, &.Sep, &.Nov
-        background-color hsla(180deg, 50%, 50%, 0.1)
+        background-color hsla(180deg, 30%, 30%, 0.1)
 
     &.Sat, &.Sun
       background-image repeating-linear-gradient(
-        50deg, transparent 0px, hsla(0, 0, 0, 0.1) 2px, transparent 4px, transparent 15px)
-
-  .add
-    position absolute
-    top 0.25rem
-    z-index 1000
-
-    span
-      background hsl(220deg, 80%, 90%)
-      border-radius 0.3em
-      font-size 0.9em
-      left 0
-      line-height 1.389
-      height 1.389em
-      position absolute
-      top 0
-      width 1.389em
-
-    #add-snapshot
-      left -1.5em
-
-    #add-workout
-      left 1.5em
+        50deg, transparent 0px, hsla(0deg, 0%, 30%, 0.1) 2px, transparent 4px, transparent 15px)
 
   .snapshot
     align-items stretch
@@ -72,20 +48,20 @@
     cursor pointer
     display flex
     height 1.5em
-    margin-left -2.5em
+    margin-left -1em
     position absolute
-    width 8em
+    width 2em
     z-index 10
 
     .marker
     .button
-      border solid 2px #888
+      border solid 1px #888
       text-align center
-      width 3em
+      width 2em
 
     .marker
       background var(--coolwarm-0)
-      border-radius 0.2em
+      border-radius 0.5em
       color #000
       &.neg.pol-3
         background var(--coolwarm-m3)
@@ -106,7 +82,7 @@
       background #fff
       color #111
       position relative
-      width 2.5em
+      width 2em
       z-index -1
 
       &.delete
