@@ -27,7 +27,7 @@ const Snapshot = ({ snapshot }) => {
   const navigate = useNavigate()
 
   return (
-    <div className='snapshot' onClick={() => navigate(`/snapshot/${snapshot.id.toString(36)}/`)}>
+    <div className='snapshot' onClick={() => navigate(`/snapshot/${snapshot.id}/`)}>
       {snapshot.utc}
       {snapshot.note}
     </div>
