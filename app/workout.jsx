@@ -7,11 +7,12 @@ dayjs.extend(require('dayjs/plugin/localizedFormat'))
 dayjs.extend(require('dayjs/plugin/relativeTime'))
 
 import useNoSleep from 'use-no-sleep'
-import React, { useContext, useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import React, { useEffect, useRef, useState } from 'react'
+import { useLoaderData } from 'react-router-dom'
 
 import { apiCreate, apiRead, apiUpdate } from './api.jsx'
-import { ConfigContext, Meter } from './common.jsx'
+import { useAuth } from './auth.jsx'
+import { Meter } from './common.jsx'
 import { geoToUtmConverter, getUtmZone, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
 
@@ -31,78 +32,69 @@ const sumDistance = ({ acc, prev }, geo) => {
 
 
 const Workout = () => {
-  const id = parseInt(useParams().id, 36)
-  const config = useContext(ConfigContext)
+  const { collection, snapshots: initialSnapshots } = useLoaderData()
 
-  const [workout, setWorkout] = useState(null)
+  const [snapshots, setSnapshots] = useState(initialSnapshots)
 
-  const reload = () => {
-    setWorkout(null)
-    apiRead(`workout/${id}`).then(setWorkout)
-  }
-
-  useEffect(() => { reload() }, [id])
-
-  if (!workout || !config) return null
-
-  const completedSets = workout.sets.filter(es => es.end_utc)
-  const remainingSets = workout.sets.filter(es => !es.end_utc)
-
-  console.log(completedSets.length, 'completed', remainingSets.length, 'remaining')
+  const goals = JSON.parse(collection.kv.goals)
 
   return (
     <div className='workout container'>
-      {remainingSets.length ? <ActiveSet workout={workout} refresh={reload} /> : null}
-      {completedSets.length ? completedSets.sort((a, b) => b.end_utc - a.end_utc).map(
-        set => <CompletedSet key={set.id} workout={workout} set={set} />
-      ) : null}
+      {snapshots.length < goals.length ?
+       <ActiveSet key={snapshots.length}
+                  collection_id={collection.id}
+                  goal={goals[snapshots.length]}
+                  refresh={res => setSnapshots(s => [...s, res])} /> : null}
+      {snapshots.reverse().map((s, i) =>
+        <CompletedSet key={s.id} utc={s.utc} data={s.kv} goal={goals[i]} />
+      )}
     </div>
   )
 }
 
 
-const CompletedSet = ({ workout, set }) => {
-  const config = useContext(ConfigContext)
-
-  return config && (
-    <div className='completed-set'>
-      <h2 className='name'>{config.exercises[set.exercise_id].name}</h2>
-      <span className='finished'>{dayjs.unix(set.end_utc).fromNow()}</span>
-      <div className='metrics'>
-        <Meter value={lib.formatDuration(set.end_utc - set.start_utc)} label='Duration' emoji='⏱️' />
-        {set.reps ? <Meter value={set.reps} attr='reps' label='Reps' emoji='🧮' /> : null}
-        {set.resistance ? <Meter value={set.resistance} attr='resistance' label='Resistance'
-                                emoji='🪨' formats={{ '': null, lb: 1, kg: 1 }} /> : null}
-        {set.distance_m ? <Meter value={set.distance_m} attr='distance_m' label='Distance'
+const CompletedSet = ({ utc, data, goal }) => (
+  <div className='completed-set'>
+    <h2 className='name'>{goal.name}</h2>
+    <span className='finished'>{dayjs.unix(utc).add(data.duration_s, 's').fromNow()}</span>
+    <div className='metrics'>
+      <Meter value={lib.formatDuration(data.duration_s)} label='Duration' emoji='⏱️' />
+      {data.reps ? <Meter value={data.reps} attr='reps' label='Reps' emoji='🧮' /> : null}
+      {data.resistance_n ? <Meter value={data.resistance_n} attr='resistance_n' label='Resistance'
+                                  emoji='🪨' formats={{ N: null, lb: 0.2248, kg: 0.102 }} /> : null}
+      {data.distance_m ? <Meter value={data.distance_m} attr='distance_m' label='Distance'
                                 emoji='📍' formats={{ m: null, km: 0.001, mi: 0.0062137 }} /> : null}
-        {set.cadence_hz ? <Meter value={set.cadence_hz} attr='cadence_hz' label='Cadence'
+      {data.cadence_hz ? <Meter value={data.cadence_hz} attr='cadence_hz' label='Cadence'
                                 emoji='🚲' formats={{ Hz: null, rpm: 60 }} /> : null}
-        {set.avg_power_w ? <Meter value={set.avg_power_w} attr='avg_power_w' label='Average Power'
+      {data.avg_power_w ? <Meter value={data.avg_power_w} attr='avg_power_w' label='Average Power'
                                  emoji='⚡' formats={{ W: null, hp: 0.00134102 }} /> : null}
-      </div>
     </div>
-  )
-}
+  </div>
+)
 
 
-const ActiveSet = ({ workout, refresh }) => {
-  const config = useContext(ConfigContext)
+const ActiveSet = ({ goal, refresh }) => {
+  const { collection } = useLoaderData()
 
-  const [set, setSet] = useState(workout.sets.filter(es => !es.end_utc)[0])
-  const [nosleep, setNosleep] = useState(set.start_utc && !set.end_utc)
+  const [utc, setUtc] = useState(0)
+  const [data, setData] = useState({})
+  const [nosleep, setNosleep] = useState(false)
   const awake = useNoSleep(nosleep)
 
   const [stepTimes, setStepTimes] = useState([])
   const [geoMeasurements, setGeoMeasurements] = useState([])
   const [heartRateMeasurements, setHeartRateMeasurements] = useState([])
 
-  const post = data => apiUpdate(`workout/${workout.id}/set/${set.id}`, data).then(setSet)
-  const start = () => { post({ start_utc: dayjs().unix() }); setNosleep(true) }
-  const finish = () => { post({ end_utc: dayjs().unix() }); setNosleep(false) }
+  const start = () => { setUtc(dayjs.utc().unix()); setNosleep(true) }
 
-  const finalize = () => {
-    const data = {}
-    Object.keys(set).forEach(attr => { if (set[attr] != null) data[attr] = set[attr] })
+  const finish = () => {
+    setNosleep(false)
+    setData(d => ({ ...d, duration_s: dayjs.utc().unix() - utc}))
+  }
+
+  const update = attr => value => setData(d => ({ ...d, [attr]: value }))
+
+  const commit = () => {
     if (stepTimes.length) {
       data['step_count'] = stepTimes.length
       data['step_intervals'] = lib.waveletEncode(lib.diff(stepTimes))
@@ -120,16 +112,10 @@ const ActiveSet = ({ workout, refresh }) => {
       data['rr_count'] = rrs.length
       data['rr_intervals'] = lib.waveletEncode(rrs)
     }
-    post(data)
-    refresh()
+    apiCreate('snapshots', { utc: utc, collection_id: collection.id, ...data }).then(refresh)
   }
 
-  const update = attr => e => {
-    const value = e.target.value
-    setSet(es => ({ ...es, [attr]: value }))
-  }
-
-  return config && (
+  return (
     <div className='active-set'>
       {navigator.bluetooth &&
        <HeartRateMonitor
@@ -151,30 +137,35 @@ const ActiveSet = ({ workout, refresh }) => {
          samplePeriodSec={60} />}
 
       <h1 className='name'>
-        {set.start_utc ? null : <button className='start' onClick={start}>⏱️ Start!</button>}
-        {config.exercises[set.exercise_id].name}
+        {utc ? null : <button className='start' onClick={start}>⏱️ Start!</button>}
+        {goal.name}
       </h1>
 
-      {set.end_utc ? (
+      {data.duration_s ? (
         <div className='finalize'>
-          Reps<input name='reps' value={set.reps || set.target_amount || ''} type='number' onChange={update('reps')} autoFocus /><br />
-          Resistance<input name='resistance' value={set.resistance || set.target_difficulty || ''} onChange={update('resistance')} type='number' /><br />
-          Distance<input name='distance_m' value={set.distance_m || set.target_amount || ''} onChange={update('distance_m')} type='number' /><span className='unit'>m</span><br />
-          Cadence<input name='cadence_hz' value={set.cadence_hz || ''} onChange={update('cadence_hz')} type='number' /><span className='unit'>RPM</span><br />
-          Average Power<input name='avg_power_w' value={set.avg_power_w || ''} onChange={update('avg_power_w')} type='number' /><span className='unit'>W</span>
-          <button className='save' onClick={finalize}>Save</button>
+          <Meter value={lib.formatDuration(data.duration_s)} label='Duration' emoji='⏲️' />
+          <Meter value={data.reps || goal.reps} label='Reps' emoji='🧮' update={update('reps')} />
+          <Meter value={data.resistance_n || goal.resistance_n} label='Resistance' update={update('resistance_n')}
+                 emoji='🪨' formats={{ N: null, lb: 0.2248, kg: 0.102 }} />
+          <Meter value={data.distance_m || goal.distance_m} label='Distance' update={update('distance_m')}
+                 emoji='📍' formats={{ m: null, km: 0.001, mi: 0.0062137 }} />
+          <Meter value={data.cadence_hz || goal.cadence_hz} label='Cadence' update={update('cadence_hz')}
+                 emoji='🚲' formats={{ Hz: null, rpm: 60 }} />
+          <Meter value={data.avg_power_w || goal.avg_power_w} label='Average Power' update={update('avg_power_w')}
+                 emoji='⚡' formats={{ W: null, hp: 0.00134102 }} />
+          <button className='save' onClick={commit}>Save</button>
         </div>
-      ) : set.start_utc ? (
-        set.target_duration_s
-          ? <Timer seconds={set.target_duration_s} finish={finish} />
-          : <Stopwatch utc={set.start_utc} finish={finish} />
+      ) : utc ? (
+        goal.duration_s
+          ? <Timer seconds={goal.duration_s} finish={finish} />
+          : <Stopwatch utc={utc} finish={finish} />
       ) : (
         <div className='info'>
-          <img src={`/static/img/${config.exercises[set.exercise_id].image}`} />
-          <div className='targets'>
-            {set.target_difficulty ? <span className='difficulty'>Target difficulty: 🪨 {set.target_difficulty}</span> : null}
-            {set.target_amount ? <span className='amount'>Target amount: 🧮 {set.target_amount}</span> : null}
-            {set.target_duration_s ? <span className='duration_s'>Target duration: ⏲️  {lib.formatDuration(set.target_duration_s)}</span> : null}
+          <div className='goals'>
+            {goal.reps ? <span className='reps'>Target reps: 🧮 {goal.reps}</span> : null}
+            {goal.duration_s ? <span className='duration_s'>Target duration: ⏲️  {lib.formatDuration(goal.duration_s)}</span> : null}
+            {goal.distance_m ? <span className='distance_m'>Target distance: 📍 {goal.distance_m}</span> : null}
+            {goal.resistance_n ? <span className='resistance_n'>Target resistance: 🪨 {goal.resistance_n}</span> : null}
           </div>
         </div>
       )}
@@ -196,11 +187,10 @@ const Timer = ({ seconds, finish }) => {
   }, [])
 
   useEffect(() => {
-    if (remaining > 0) return
-    if (finished) return
-    setFinished(true)
+    if (finished || remaining > 0) return
     alarm.current.play()
     finish()
+    setFinished(true)
   }, [remaining, finished])
 
   return (
@@ -317,45 +307,21 @@ const parseHeartRate = data => {
 
 const HeartRateMonitor = ({ heartRate, addMeasurement, clear }) => {
   const [enabled, setEnabled] = useState(false)
-  const [bluetoothDevice, setBluetoothDevice] = useState(null)
-  const [heartRateMonitor, setHeartRateMonitor] = useState(null)
+
+  const sample = e => addMeasurement(parseHeartRate(e.target.value))
 
   useEffect(() => {
     console.log('heart rate monitor is', enabled ? 'enabled' : 'disabled')
 
     if (!enabled) return
 
-    navigator.bluetooth
-      .requestDevice({ filters: [{ services: ['heart_rate'] }] })
-      .then(setBluetoothDevice)
-      .catch(e => {
-        console.log(e.message)
-        setEnabled(false)
-      })
-
-    return () => setBluetoothDevice(null)
-  }, [enabled])
-
-  useEffect(() => {
-    if (!bluetoothDevice) return
-
-    bluetoothDevice
-      .gatt.connect()
-      .then(server => server.getPrimaryService('heart_rate'))
-      .then(service => service.getCharacteristic('heart_rate_measurement'))
-      .then(setHeartRateMonitor)
-      .catch(e => {
-        console.log(e.message)
-        setEnabled(false)
-      })
-
-    return () => setHeartRateMonitor(null)
-  }, [bluetoothDevice])
-
-  useEffect(() => {
-    if (!heartRateMonitor) return
-
-    const sample = e => addMeasurement(parseHeartRate(e.target.value))
+    const heartRateMonitor = (async () => {
+      const bt = navigator.bluetooth
+      const device = await bt.requestDevice({ filters: [{ services: ['heart_rate'] }] })
+      const server = await device.gatt.connect()
+      const service = await server.getPrimaryService('heart_rate')
+      return await service.getCharacteristic('heart_rate_measurement')
+    })()
 
     heartRateMonitor.addEventListener('characteristicvaluechanged', sample)
     heartRateMonitor.startNotifications()
@@ -364,7 +330,7 @@ const HeartRateMonitor = ({ heartRate, addMeasurement, clear }) => {
       heartRateMonitor.stopNotifications()
       heartRateMonitor.removeEventListener('characteristicvaluechanged', sample)
     }
-  }, [heartRateMonitor])
+  }, [enabled])
 
   return (
     <div className={`heart-rate-monitor ${enabled ? 'enabled' : 'disabled'}`}
@@ -405,7 +371,6 @@ const PathTracker = ({ recent, distance, addMeasurement, clear, samplePeriodSec 
          onDoubleClick={clear}
          onClick={() => setEnabled(on => !on)}>
       <span className='emoji'>🗺️</span>
-      <span className='value'>{recent ? `${lib.formatDegrees(recent.coords.latitude)}, ${lib.formatDegrees(recent.coords.longitude)}` : '---'}</span>
       <span className='distance'>{`${distance} m`}</span>
     </div>
   )
