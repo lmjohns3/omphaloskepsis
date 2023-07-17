@@ -1,24 +1,29 @@
-import React, { useEffect, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useLoaderData, useNavigate, useParams } from 'react-router-dom'
 
-import { apiCreate, apiRead } from './api.jsx'
+import { apiRead, apiUpdate } from './api.jsx'
 import lib from './lib.jsx'
+
+import './workout.styl'
 
 
 const NewWorkout = () => {
   const navigate = useNavigate()
-  const config = useLoaderData()
+  const { exercises, workouts } = useLoaderData()
   const [goals, setGoals] = useState([])
   const [shuffle, setShuffle] = useState(false)
-  const [repeats, setRepeats] = useState(1)
-  const [activeTag, activateTag] = useState(null)
+  const [repeats, setRepeats] = useState(false)
+  const [numRepeats, setNumRepeats] = useState(2)
+  const [activeTag, setActiveTag] = useState('')
 
-  const add = name => () => setGoals(cur => [ ...cur, { name } ])
-
-  const addFromWorkout = key => () => setGoals(cur => [
-    ...cur,
-    ...config.workouts[key].map(n => ({ name: n })),
-  ])
+  const tags = useMemo(() => {
+    const index = {}
+    Object.entries(exercises).forEach(([name, { tags }]) => tags.forEach(tag => {
+      if (!index[tag]) index[tag] = new Set()
+      index[tag].add(name)
+    }))
+    return index
+  }, [exercises])
 
   const update = idx => (attr, value) => setGoals(cur => [
     ...cur.slice(0, idx),
@@ -32,34 +37,42 @@ const NewWorkout = () => {
 
   const startWorkout = () => {
     let expanded = []
-    for (let i = 0; i < repeats; ++i)
+    const limit = repeats ? numRepeats : 1
+    for (let i = 0; i < limit; ++i)
       expanded.push(...(shuffle ? lib.shuffle(goals) : goals))
-    apiCreate('collections', { tags: ['workout'], goals: expanded })
-      .then(res => navigate(`/workout/${res.id.toString(36)}/`))
+    apiUpdate('collections', { flavor: 'workout', goals: JSON.stringify(goals) })
+      .then(res => navigate(`/workout/${res.id}/`))
   }
+
+  console.log(goals)
 
   return (
     <div className='workout new container'>
       <h1>
-        <span>Workout Goals</span>
-        <span className='sep'></span>
         {goals.length > 0 ? <button className='start' onClick={startWorkout}>⏱️ Start!</button> : null}
+        <span>Workout Goals</span>
       </h1>
 
       {goals.length > 0 ? (
         <table className='goals'>
-          <thead><tr><td></td><th>Exercise</th><th>🪨 Resistance</th><th>🧮 Amount</th><th>⏲️ Duration</th><td></td></tr></thead>
+          <thead><tr><td></td><th>Exercise</th><th>🪨 Resistance</th><th>🧮 Reps</th><th>📍️ Distance</th><th>⏲️ Duration</th><td></td></tr></thead>
           <tbody>{goals.map((goal, idx) => (
             <tr key={idx}>
               <td key='move'>{shuffle ? null : '☷'}</td>
-              <td key='name'>{config.exercises[goal.id].name}</td>
+              <td key='name'>{goal.name}</td>
               <Cell key='difficulty'
                     attr='difficulty'
                     goal={goal}
                     updateAll={updateAll}
                     update={update(idx)} />
-              <Cell key='amount'
-                    attr='amount'
+              <Cell key='reps'
+                    attr='reps'
+                    goal={goal}
+                    parse={parseInt}
+                    updateAll={updateAll}
+                    update={update(idx)} />
+              <Cell key='distance_m'
+                    attr='distance_m'
                     goal={goal}
                     parse={parseInt}
                     updateAll={updateAll}
@@ -81,42 +94,39 @@ const NewWorkout = () => {
       ) : null}
 
       {goals.length > 0 ? (<>
+        <span id='repeats' className={`toggle ${repeats ? 'toggled' : ''}`}
+              onClick={() => setRepeats(s => !s)}></span>
         <label htmlFor='repeats'>Repeat</label>
-        <input id='repeats' value={repeats} onChange={e => setRepeats(e.target.value)} />
-        <label htmlFor='shuffle'>Shuffle</label>
+        {repeats ? <input id='num-repeats' value={numRepeats} onChange={e => setNumRepeats(e.target.value)} /> : null}
+        <br/>
         <span id='shuffle' className={`toggle ${shuffle ? 'toggled' : ''}`}
               onClick={() => setShuffle(s => !s)}></span>
+        <label htmlFor='shuffle'>Shuffle</label>
       </>): null}
 
       <h2>Copy from another workout...</h2>
-      <ul className='other-workouts'>{Object.keys(config.workouts).map(key => (
-        config.workouts[key].length < 2 ? null : (
-          <li key={key}>
-            <button className='add' onClick={addFromWorkout(key)}>+</button>
-            <span className='name'>{key}</span>
-            {config.workouts[key].map(n => <span key={n} className='exercise'>{n}</span>)}
+      <ul className='other-workouts'>{Object.entries(workouts).map(([name, exs]) => (
+        exs.length < 2 ? null : (
+          <li key={name}>
+            <button className='add' onClick={() => setGoals(cur => [...cur, ...exs.map(n => ({ name: n }))])}>+</button>
+            <span className='name'>{name}</span>
+            {exs.map(n => <span key={n} className='exercise'>{n}</span>)}
           </li>
         )))}</ul>
 
       <h2>Add individual exercises...</h2>
-      <ul className='tags'>
-        <li key='all'
-            className={`tag ${activeTag ? '' : 'active'}`}
-            onClick={() => activateTag(null)}>all</li>
-        {Object.keys(config.tagToIds).sort().map(tag => (
-          <li key={tag}
-              className={`tag ${tag === activeTag ? 'active' : ''}`}
-              onClick={() => activateTag(tag)}>{tag}</li>
-        ))}
-      </ul>
+      <select className='tags' onChange={e => setActiveTag(e.target.value)}>
+        <option key='all' value=''>Filter...</option>
+        {Object.keys(tags).sort().map(tag => <option key={tag} value={tag}>{tag}</option>)}
+      </select>
       <ul className='exercises'>{
-        Object.values(config.exercises)
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map(ex => (activeTag === null || ex.tags.indexOf(activeTag) >= 0) ? (
-                <li key={ex.id}>
-                  <button className='add' onClick={add(ex.id)}>+</button>
+        Object.entries(exercises)
+              .sort((a, b) => a[0].localeCompare(b[0]))
+              .map(([name, ex]) => (activeTag === '' || ex.tags.indexOf(activeTag) >= 0) ? (
+                <li key={name}>
+                  <button className='add' onClick={() => setGoals(cur => [ ...cur, { name } ])}>+</button>
                   <img src={`/static/img/${ex.image}`} />
-                  <span className='name'>{ex.name}</span>
+                  <span className='name'>{name}</span>
                 </li>
               ) : null)
       }</ul>
