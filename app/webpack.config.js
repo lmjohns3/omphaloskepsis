@@ -1,6 +1,9 @@
 const path = require('path')
+const webpack = require('webpack')
+
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+
 
 module.exports = {
   mode: 'development', //'production',
@@ -27,6 +30,7 @@ module.exports = {
     },
     {
       test: /\.(png|mp3)$/i,
+      exclude: /node_modules/,
       type: 'asset/resource',
     },
   ]},
@@ -40,5 +44,6 @@ module.exports = {
       filename: 'app.css',
       //filename: 'app.[hash].css',
     }),
+    //new webpack.HotModuleReplacementPlugin(),
   ],
 }
