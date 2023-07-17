@@ -36,11 +36,11 @@ const Login = () => {
     setError(null)
     apiUpdate('login', { email, password })
       .then(handleToken)
-      .then(() => navigate(location.search.replace(/.*\bthen=([^&]+).*/, '$1') || '/'))
+      .then(() => navigate(location.state?.then ?? '/'))
       .catch(err => { setPassword(''); setError('Incorrect!') })
   }
 
-  if (token) return <Navigate to='/' />
+  if (token) return <Navigate to={location.state?.then ?? '/'} />
 
   return (
     <div className='login container'>
