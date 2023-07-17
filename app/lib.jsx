@@ -165,4 +165,22 @@ export default {
     const sec = Math.floor(3600 * (value - deg - min / 60))
     return `${deg}°${min}′${sec}″`
   },
+
+  vo2maxMlKgMinFromRestingHeartRate: (heartRateBpm, heartRateMaxBpm) => {
+    // HR fraction method
+    // https://www.trailrunnerworld.com/vo2-max-calculator/
+    return 15.3 * heartRateMaxBpm / heartRateBpm
+  },
+
+  vo2maxMlKgMinFromMileHeartRate: (ageY, isMale, weightKg, walkTimeMin, walkHeartRateBpm) => {
+    // Rockport method: Walk 1 mile, measure time and HR at end of walk.
+    // https://www.calculatorpro.com/calculator/vo2-max-calculator/
+    // http://www.shapesense.com/fitness-exercise/calculators/vo2max-calculator.shtml
+    return (132.8530
+            + 6.3150 * isMale
+            - 0.3877 * ageY
+            - 0.1695 * weightKg
+            - 3.2649 * walkTimeMin
+            - 0.1565 * walkHeartRateBpm)
+  },
 }
