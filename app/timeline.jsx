@@ -5,11 +5,11 @@ dayjs.extend(require('dayjs/plugin/duration'))
 dayjs.extend(require('dayjs/plugin/minMax'))
 
 import React, { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLoaderData, useNavigate } from 'react-router-dom'
 import SunCalc from 'suncalc'
 
 import { apiCreate, apiRead, apiUpdate, apiDelete } from './api.jsx'
-import { useActivated, useRefresh } from './common.jsx'
+import { useActivated } from './common.jsx'
 import lib from './lib.jsx'
 
 import './timeline.styl'
@@ -19,126 +19,45 @@ const keyForDay = utc => utc.format(KEY_FMT)
 const dayFromKey = key => dayjs.utc(key, KEY_FMT)
 
 
-// Maintain a moving window over a contiguous group of days. Total number of days
-// in the window is `2 * size + 1`.
-const dayWindow = size => {
-  const navigate = useNavigate()
-  const centerKey = (useLocation().hash || `#${keyForDay(dayjs.utc())}`).slice(1)
-  const [dayKeys, setDayKeys] = useState([])
+const Timeline = () => {
+  const { snapshots, collections } = useLoaderData()
 
-  const recenter = centerKey => {
-    const newKeys = []
-    const limit = dayjs.utc().endOf('d')
-    const ctr = dayFromKey(centerKey)
-    for (let i = size; i >= -size; i--) {
-      const day = ctr.add(i, 'd')
-      if (!day.isAfter(limit)) newKeys.push(keyForDay(day))
-    }
-    navigate(`#${centerKey}`, { replace: true })
-    setDayKeys(newKeys)
+  const days = {}
+  for (let i = 0; i < 90; ++i) {
+    days[keyForDay(dayjs.utc().subtract(i, 'd'))] = []
   }
 
-  useEffect(() => { recenter(centerKey) }, [])
-
-  // Listen to scroll events to know when to update the center of the window.
-  useEffect(() => {
-    let debounce = null
-    const handler = () => {
-      if (debounce) return
-      debounce = setTimeout(() => { debounce = null }, 200)
-      // Document body contains all currently rendered days. Compute the
-      // distance between the middle of the viewport (innerHeight / 2) and the
-      // top of the document's bounding box, and compare this to the height of
-      // the document's bounding box to get the fraction of days that are
-      // displayed above the middle of the viewport.
-      const { top, height } = document.body.getBoundingClientRect()
-      const frac = (window.innerHeight / 2 - top) / height
-      const len = Math.floor(frac * dayKeys.length)
-      const idx = frac < 0 ? 0 : frac >= 1 ? dayKeys.length - 1 : len
-      if (dayKeys[idx] && (frac < 0.4 || frac > 0.6)) recenter(dayKeys[idx])
-    }
-    window.addEventListener('scroll', handler)
-    return () => window.removeEventListener('scroll', handler)
-  }, [dayKeys])
-
-  return dayKeys
-}
-
-
-// Cache snapshots that have been loaded from the server.
-const cacheSnapshots = dayKeys => {
-  const [cache, setCache] = useState({})
-  const loadedDays = useRef({})
-
-  const update = snapshot => setCache(cur => {
-    if (snapshot?.id) {
-      cur[snapshot.id] = snapshot
-    } else {
-      delete cur[snapshot]
-    }
-    return { ...cur }
+  Object.values(snapshots).forEach(snap => {
+    const key = keyForDay(dayjs.unix(snap.utc).tz('UTC'))
+    if (!(key in days)) days[key] = []
+    days[key].push(snap.id)
   })
-
-  useEffect(() => {
-    for (const dayKey of dayKeys) {
-      if (dayKey in loadedDays.current) continue
-      loadedDays.current[dayKey] = true
-      const t = dayFromKey(dayKey)
-      apiRead('snapshots', {
-        start: t.startOf('d').unix(),
-        end: t.endOf('d').unix()
-      }).then(res => res.forEach(update))
-    }
-  }, [dayKeys])
-
-  return [cache, update]
-}
-
-
-const Timeline = () => {
-  const refresh = useRefresh()
-  const dayKeys = dayWindow(30)
-
-  const [cache, updateCache] = cacheSnapshots(dayKeys)
-  const [groups, setGroups] = useState({ days: {}, collections: {} })
-
-  useEffect(() => {
-    const days = {}, collections = {}
-    Object.values(cache).forEach(snapshot => {
-      const key = keyForDay(dayjs.unix(snapshot.utc).tz('UTC'))
-      if (!(key in days)) days[key] = []
-      days[key].push(snapshot.id)
-      const cid = snapshot.collection_id
-      if (!cid) return
-      if (!(cid in collections)) collections[cid] = []
-      collections[cid].push(snapshot.id)
-    })
-    setGroups({ days, collections })
-  }, [cache])
 
   return (
     <div className='timeline'>
-      <div className='tick' style={{ left: '12.5%' }}></div>
-      <div className='tick' style={{ left: '25%' }}></div>
-      <div className='tick' style={{ left: '37.5%' }}></div>
-      <div className='tick' style={{ left: '50%' }}></div>
-      <div className='tick' style={{ left: '62.5%' }}></div>
-      <div className='tick' style={{ left: '75%' }}></div>
-      <div className='tick' style={{ left: '87.5%' }}></div>
-      {dayKeys.map(key => <Day key={key}
-                               yyyymmdd={key}
-                               refresh={refresh}
-                               groups={groups}
-                               snapshots={cache}
-                               update={updateCache} />)}
+      <div className='tick' style={{ left: '12%' }}></div>
+      <div className='tick' style={{ left: '24%' }}></div>
+      <div className='tick' style={{ left: '36%' }}></div>
+      <div className='tick' style={{ left: '48%' }}></div>
+      <div className='tick' style={{ left: '60%' }}></div>
+      <div className='tick' style={{ left: '72%' }}></div>
+      <div className='tick' style={{ left: '84%' }}></div>
+      <div className='tick' style={{ left: '96%' }}></div>
+      <div className='tick' style={{ left: '97%' }}></div>
+      <div className='tick' style={{ left: '98%' }}></div>
+      <div className='tick' style={{ left: '99%' }}></div>
+      {Object.keys(days).sort().reverse().map(
+        key => <Day key={key}
+                    yyyymmdd={key}
+                    days={days}
+                    snapshots={snapshots}
+                    collections={collections} />)}
     </div>
   )
 }
 
 
-// Simplify: 100[%] * dt[msec] / (86400[sec/day] * 1000[msec/sec]) ==>
-// dt / 864000 [% day].
-const pct = (begin, end) => `${end.diff(begin) / 864000}%`
+const pct = (begin, end) => `${100 * end.diff(begin) / end.diff(end.subtract(25, 'h'))}%`
 
 
 // Given a time in UTC, and some snapshots (from which we extract lat/lng), compute
@@ -147,49 +66,41 @@ const geoMoments = (utc, snapshots) => {
   const geos = snapshots.filter(e => e && e.lat && e.lng)
   const { lat, lng } = geos.length > 0 ? geos[0] : {}
 
-  if (!lat || !lng) return { tm1: {}, t: {}, tp1: {} }
-
   const moments = utc => {
     const kvs = SunCalc.getTimes(utc.toDate(), lat, lng)
     return Object.fromEntries(
       Object.entries(kvs).map(([k, v]) => [k, dayjs(v)]))
   }
 
-  return {
+  return lat && lng ? {
     tm1: moments(utc.add(-1, 'd')),
     t: moments(utc),
     tp1: moments(utc.add(1, 'd'))
-  }
+  } : { tm1: {}, t: {}, tp1: {} }
 }
 
 
-// Snapshots in the timeline are grouped and presented by day. A Day here is a
-// component that shows a single 24-hour period (currently assumed to be
-// midnight-to-midnight in UTC).
-const Day = ({ yyyymmdd, refresh, snapshots, groups, update }) => {
+// Snapshots in the timeline are grouped by day. A Day here is a component that shows a
+// single 24-hour period (currently assumed to be midnight-to-midnight in UTC).
+const Day = ({ yyyymmdd, days, snapshots, collections }) => {
   const left = dayFromKey(yyyymmdd)
-  const snaps = (yyyymmdd in groups.days) ? groups.days[yyyymmdd].map(sid => snapshots[sid]) : []
+  const snaps = (yyyymmdd in days) ? days[yyyymmdd].map(sid => snapshots[sid]) : []
   const sun = geoMoments(left, snaps)
   const [ref, isActivated, setIsActivated] = useActivated()
 
   const seen = {}
   const children = []
   snaps.forEach(snap => {
-    if (!snap) return
     const cid = snap.collection_id
-    if (cid && !seen[cid] && groups.collections[cid]) {
-      seen[cid] = true
+    if (cid) {
+      if (seen[cid]) return
       children.push(<Collection key={`collection-${cid}`}
                                 left={left}
-                                collectionId={cid}
-                                update={update}
-                                refresh={refresh} />)
+                                snapshots={snapshots}
+                                collection={collections[cid]} />)
+      seen[cid] = true
     } else {
-      children.push(<Snapshot key={`snapshot-${snap.id}`}
-                              left={left}
-                              snapshot={snap}
-                              update={update}
-                              refresh={refresh} />)
+      children.push(<Snapshot key={`snapshot-${snap.id}`} left={left} snapshot={snap} />)
     }
   })
 
@@ -212,40 +123,9 @@ const Day = ({ yyyymmdd, refresh, snapshots, groups, update }) => {
         <div className='shadow' style={pcts(sun.t.dusk, sun.tp1.dawn)}></div>
         <div className='shadow' style={pcts(sun.t.nauticalDusk, sun.tp1.nauticalDawn)}></div>
       </>}
-      <span className='label'>{left.format(left.date() === 1 ? 'dd D MMM YYYY' : 'dd D')}</span>
+      <span className='label'>{left.format(left.date() === 1 ? 'D dd MMM YYYY' : 'D dd')}</span>
       {children}
-      {keyForDay(dayjs.utc()) === yyyymmdd ? <Now /> : null}
     </div>
-  )
-}
-
-
-// A widget that shows the current time on the timeline.
-const Now = () => {
-  const navigate = useNavigate()
-  const [ref, isActivated, setIsActivated] = useActivated()
-  const [now, setNow] = useState(dayjs.utc())
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(dayjs.utc()), 60000)
-    return clearInterval(id)
-  }, [])
-
-  return (
-    <button ref={ref}
-            className={`add ${isActivated ? 'active' : ''}`}
-            onClick={() => setIsActivated(true)}
-            style={{left: pct(now.startOf('d'), now)}}>
-      {isActivated ? (
-        <>
-          <span id='add-snapshot' onClick={() => apiCreate('snapshots').then(
-                  res => navigate(`/snapshot/${res.id.toString(36)}/`))}>🗒️️</span>
-          <span id='add-sleep' onClick={() => apiCreate('collections', { tags: ['sleep'] }).then(
-                  res => navigate(`/snapshot/${res.snapshots[0].id.toString(36)}/`))}>💤</span>
-          <span id='add-workout' onClick={() => navigate('/workout/new/')}>🏋️</span>
-        </>
-      ) : '+'}
-    </button>
   )
 }
 
@@ -253,20 +133,15 @@ const Now = () => {
 // A Collection is a group of related Snapshots -- for example, a period of sleep
 // marked by a beginning (going to sleep) and end (waking up) snapshot. Visually,
 // collections are just shown as a stripe between the first and last Snapshots.
-const Collection = ({ left, collectionId, update, refresh }) => {
+const Collection = ({ left, collection, snapshots }) => {
   const navigate = useNavigate()
 
-  const [collection, setCollection] = useState(null)
+  const isHabit = collection.flavor === 'habit'
+  const isSleep = collection.flavor === 'sleep'
+  const isWorkout = collection.flavor === 'workout'
 
-  useEffect(() => { apiRead(`collection/${collectionId}`).then(setCollection) }, [])
-
-  if (!collection) return null
-
-  const isWorkout = collection.tags.indexOf('workout') >= 0
-  const isSleep = collection.tags.indexOf('sleep') >= 0
-
-  const allSnaps = collection.snapshots
-  const visibleSnaps = collection.snapshots.filter(snap => {
+  const allSnaps = collection.snapshot_ids.map(sid => snapshots[sid])
+  const visibleSnaps = allSnaps.filter(snap => {
     const diff = snap.utc - left.unix()
     return 0 < diff && diff < 86400
   })//.sort((a, b) => b.utc - a.utc)
@@ -279,27 +154,25 @@ const Collection = ({ left, collectionId, update, refresh }) => {
 
   return (
     <>
-      {(allSnaps.length < 2 || isWorkout) ? null : (
+      {(allSnaps.length > 1 && !isWorkout) ? (
         <div className='duration'
-             title={`${collection.tags.join(' ')} ${lib.formatDuration(lib.last(allSnaps).utc - allSnaps[0].utc)}`}
+             title={`${collection.flavor} ${lib.formatDuration(lib.last(allSnaps).utc - allSnaps[0].utc)}`}
              style={{ left: pct(left, first), width: pct(first, last) }}
-             onClick={() => navigate(`/collection/${collectionId.toString(36)}/`)}></div>
-      )}
-      <Snapshot left={left}
-                icon={isWorkout ? '🏋️' : null}
-                snapshot={visibleSnaps[0]}
-                update={update}
-                refresh={refresh} />
-      {allSnaps.length === 1 && isSleep ? (
+             onClick={() => navigate(`/collection/${collection.id}/`)}></div>
+      ) : null}
+      <Snapshot left={left} icon={isWorkout ? '🏋️' : isSleep ? '💤' : isHabit ? collection.kv.icon : null} snapshot={visibleSnaps[0]} />
+      {isSleep && allSnaps.length === 1 && (
         <div className='snapshot wakeup'
              style={{ left: pct(left, right) }}
              onClick={() => apiCreate('snapshots', {
                utc: right.unix(),
-               collection_id: collectionId,
-             }).then(res => navigate(`/snapshot/${res.id.toString(36)}/`))}>
+               collection_id: collection.id,
+             }).then(res => navigate(`/snapshot/${res.id}/`))}>
           <div className='marker'>⏰</div>
         </div>
-      ) : null}
+      )}
+      {isSleep && visibleSnaps.length > 1 && (
+        <Snapshot left={left} icon='⏰' snapshot={visibleSnaps[1]} />)}
     </>
   )
 }
@@ -309,12 +182,15 @@ const Collection = ({ left, collectionId, update, refresh }) => {
 // Visually, Snapshots show up as a marker that, when tapped, toggles a
 // context menu of edit/delete tools. The "move" tool lets us drag Snapshots
 // to new times in the Timeline.
-const Snapshot = ({ left, snapshot, update, refresh, icon }) => {
+const Snapshot = ({ left, snapshot, update, icon }) => {
   const navigate = useNavigate()
+
   const [ref, isActivated, setIsActivated] = useActivated()
+
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [dragStart, setDragStart] = useState(null)
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 })
+
   const dayHeight = ref.current ? ref.current.parentNode.getBoundingClientRect().height : 0
   const HHmm = dayjs.unix(snapshot.utc).tz(snapshot.tz).format('H:mm')
   const snapshotXY = e => e.type.match(/^touch/)
@@ -332,10 +208,7 @@ const Snapshot = ({ left, snapshot, update, refresh, icon }) => {
   }
 
   const doEdit = () => navigate(
-    snapshot.collection_id
-      ? `/collection/${snapshot.collection_id.toString(36)}/`
-      : `/snapshot/${snapshot.id.toString(36)}/`
-  )
+    snapshot.collection_id ? `/collection/${snapshot.collection_id}/` : `/snapshot/${snapshot.id}/`)
 
   const onDragStart = e => {
     if (e.button !== 0) return
@@ -386,7 +259,7 @@ const Snapshot = ({ left, snapshot, update, refresh, icon }) => {
     }
   }, [dragDelta.x, dragDelta.y])
 
-  const mood = snapshot.mood || 0
+  const mood = snapshot.kv.mood || 0
   const pol = mood > 0 ? 'pos' : mood < 0 ? 'neg' : ''
   const abs = 100 * Math.abs(mood)
 
@@ -398,14 +271,15 @@ const Snapshot = ({ left, snapshot, update, refresh, icon }) => {
            left: pct(left, dayjs.unix(snapshot.utc).add(dragDelta.x, 'm')),
            top: `calc(0.25rem + ${dayHeight * dragDelta.y}px)`,
          }}>
-      <span className='button delete' onClick={doDelete}>🗑️ {needsConfirmation ? '?' : null}</span>
-      <span className={`marker ${pol} pol-${Math.floor(abs / 26)}`}
-            onMouseDown={
-              () => snapshot.workout_id
-                ? navigate(`/workout/${snapshot.workout_id.toString(36)}/`)
-                : isActivated ? doEdit() : setIsActivated(true)
-            }>{dragStart ? '☷' : isActivated ? '🔍' : icon || HHmm}</span>
-      <span className='button move' onMouseDown={onDragStart} onTouchStart={onDragStart}>☷</span>
+      {isActivated && <div className='button delete' onClick={doDelete}>🗑️ {needsConfirmation ? '?' : null}</div>}
+      <div className={`marker ${pol} pol-${Math.floor(abs / 26)}`}
+           title={HHmm}
+           onMouseDown={
+             () => snapshot.collection_id
+               ? navigate(`/collection/${snapshot.collection_id}/`)
+               : isActivated ? doEdit() : setIsActivated(true)
+           }>{isActivated ? '🔍' : icon ? icon : snapshot.note ? '📝' : '-'}</div>
+      {isActivated && <div className='button move' onMouseDown={onDragStart} onTouchStart={onDragStart}>☷</div>}
     </div>
   )
 }
