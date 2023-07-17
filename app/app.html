@@ -17,7 +17,7 @@
 <script defer src="/static/app.js"></script><link href="/static/app.css" rel="stylesheet"></head>
 </head>
 <body>
-<div id="csrf" content="{{ session['csrf'] }}"></div>
+<div id="csrf" token="{{ session['csrf'] }}"></div>
 <div id="app"></div>
 </body>
 </html>

@@ -8,19 +8,19 @@ import { useGeo } from './geo.jsx'
 
 
 const csrfHeader = () => ({
-  'x-omphaloskepsis-csrf': document.getElementById('csrf').getAttribute('content')
+  'x-omphaloskepsis-csrf': document.getElementById('csrf').getAttribute('token')
 })
 
 
 const api = path => `/api/${path}/`
 
 
-const fetchJson = (url, args) => fetch(url, args)
-      .catch(console.error)
-      .then(res => {
-        if (res.ok) return res.json()
-        throw new Error(`${url}: got ${res.status} ${res.statusText}`)
-      })
+const fetchJson = (url, args, timeoutSec = 10) => fetch(
+  url, { ...args, signal: AbortSignal.timeout(1000 * timeoutSec) }
+).then(res => {
+  if (res.ok) return res.json()
+  throw new Error(JSON.stringify({ url: url, status: res.status }))
+})
 
 
 const apiCreate = (path, args) => useGeo().then(geo => apiUpdate(path, {
@@ -31,6 +31,9 @@ const apiCreate = (path, args) => useGeo().then(geo => apiUpdate(path, {
 }))
 
 
+const apiDelete = path => fetchJson(api(path), { method: 'DELETE', headers: csrfHeader() })
+
+
 const apiRead = (path, args) => fetchJson(api(path) + '?' + new URLSearchParams(args))
 
 
@@ -39,9 +42,6 @@ const apiUpdate = (path, args) => fetchJson(api(path), {
   headers: { 'Content-Type': 'application/json;charset=utf-8', ...csrfHeader() },
   body: JSON.stringify(args)
 })
-
-
-const apiDelete = path => fetchJson(api(path), { method: 'DELETE', headers: csrfHeader() })
 
 
 export { apiCreate, apiDelete, apiRead, apiUpdate }

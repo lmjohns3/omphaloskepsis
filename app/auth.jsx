@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { Navigate, useLoaderData, useLocation, useNavigate } from 'react-router-dom'
 
 import { apiUpdate } from './api.jsx'
@@ -9,36 +9,31 @@ const AuthContext = createContext({})
 
 const AuthProvider = ({ children }) => {
   const navigate = useNavigate()
-  const tokenResponse = useLoaderData()
+  const fetched = useLoaderData()
 
   const [token, setToken] = useState(null)
 
   const handleToken = res => {
+    document.getElementById('csrf').setAttribute('token', res.csrf)
     setToken(res.aid)
-    document.getElementById('csrf').setAttribute('content', res.csrf)
   }
 
   const clearToken = () => apiUpdate('logout').then(res => {
+    document.getElementById('csrf').setAttribute('token', res.csrf)
     setToken(null)
-    document.getElementById('csrf').setAttribute('content', res.csrf)
     navigate('/')
   })
 
-  if (!token && tokenResponse) handleToken(tokenResponse)
+  if (!token && fetched) handleToken(fetched)
 
-  return (
-    <AuthContext.Provider value={{ token, handleToken, clearToken }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ token, handleToken, clearToken }}>{children}</AuthContext.Provider>
 }
 
 
 const AuthRequired = ({ children }) => {
   const { token } = useAuth()
   const location = useLocation()
-  if (token) return children
-  return <Navigate to={`/login?then=${location.pathname}`} replace />
+  return token ? children : <Navigate to='/login/' replace state={{ then: location }} />
 }
 
 
