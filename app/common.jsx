@@ -4,7 +4,7 @@ dayjs.extend(require('dayjs/plugin/timezone'))
 dayjs.extend(require('dayjs/plugin/duration'))
 dayjs.extend(require('dayjs/plugin/minMax'))
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import lib from './lib.jsx'
 
@@ -23,12 +23,6 @@ const useInterval = (callback, delay) => {
       return () => clearInterval(id)
     }
   }, [delay])
-}
-
-
-const useRefresh = () => {
-  const [_, setSerial] = useState(0)
-  return () => setSerial(s => s + 1)
 }
 
 
@@ -52,8 +46,8 @@ const useActivated = () => {
 }
 
 
-const Dial = ({ icon, attr, snapshot, update }) => {
-  const value = Math.max(0, snapshot[attr] || 0)
+const Dial = ({ icon, attr, value, update }) => {
+  if (!value) return null
 
   const levels = 20
   const range = 1.3333 * Math.PI
@@ -87,14 +81,13 @@ const Dial = ({ icon, attr, snapshot, update }) => {
 }
 
 
-const Meter = ({ snapshot, attr, label, emoji, formats, update }) => {
+const Meter = ({ value, label, emoji, formats, update }) => {
   const [editing, setEditing] = useState(false)
 
   if (!formats) formats = { '': null }
 
-  const value = snapshot[attr]
   const units = Object.keys(formats)
-  const unitStorageKey = `omphalos-unit-${attr}`
+  const unitStorageKey = `omphalos-unit-${units.join('_')}`
   const [unit, setUnit] = useState(localStorage.getItem(unitStorageKey))
 
   useEffect(() => {
@@ -117,16 +110,19 @@ const Meter = ({ snapshot, attr, label, emoji, formats, update }) => {
   return (
     <div className='meter'>
       {!emoji ? null : <span className='emoji'>{emoji}</span>}
-      <span className='label'>{label || attr}</span>
+      <span className='label'>{label}</span>
       <span className={`value ${update ? 'can-edit' : ''}`}
-            onClick={update ? () => setEditing(true) : null}>{
-              !editing ? !storedValue ? '---' : lib.roundTenths(displayedValue)
-              : <input type='text' defaultValue={displayedValue} autoFocus
-                       onFocus={e => e.target.select()} onBlur={e => {
-                         setEditing(false)
-                         update({ [attr]: convertFromDisplay(e.target.value) })
-                       }} />
-            }</span>
+            onClick={update ? () => setEditing(true) : null}>
+        {editing ? <input type='text'
+                          defaultValue={displayedValue}
+                          autoFocus
+                          onFocus={e => e.target.select()}
+                          onBlur={e => {
+                            setEditing(false)
+                            update(+convertFromDisplay(e.target.value))
+                          }} /> :
+         storedValue ? lib.roundTenths(displayedValue) : '---'}
+      </span>
       <span className={`unit options-${units.length}`} onClick={() => setUnit(u => {
               const i = units.indexOf(u)
               const next = units[(i + 1) % units.length]
@@ -138,25 +134,67 @@ const Meter = ({ snapshot, attr, label, emoji, formats, update }) => {
 }
 
 
-const When = ({ utc, tz }) => {
-  const t = dayjs.unix(utc).tz(tz)
+const Mood = ({ value, update }) => {
   return (
-    <div className='when'>
-      <span className='year'>{t.format('YYYY')}</span>
-      <span className='month'>{t.format('MMMM')}</span>
-      <span className='day'>{t.format('D')}</span>
-      <span className='weekday'>({t.format('dddd')})</span>
-      <span className='time'>{t.format('h:mm a')}</span>
+    <div className='mood'>
+      <span className='bar' onClick={e => {
+              const { width } = e.target.getBoundingClientRect()
+              const x = e.nativeEvent.offsetX
+              update(Math.max(-1.0, Math.min(1.0, 2 * x / width - 1)))
+            }}></span>
+      {value ? <span className='marker cur' style={{ left: `${Math.round(50 * (1 + value))}%` }}>📍</span> : null}
+      <span className='marker lo'>😞</span>
+      <span className='marker hi'>😊</span>
     </div>
   )
+}
+
+
+// https://stackoverflow.com/q/48048957
+const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700 } = {}) => {
+  const [longPressed, setLongPressed] = useState(false)
+  const timeout = useRef()
+  const target = useRef()
+
+  const doPreventDefault = event => (
+      ('touches' in event) &&
+      (event.touches.length < 2) &&
+      (event.preventDefault)) ? event.preventDefault() : null
+
+  const start = useCallback(event => {
+    if (shouldPreventDefault && event.target) {
+      event.target.addEventListener('touchend', doPreventDefault, { passive: false })
+      target.current = event.target
+    }
+    timeout.current = setTimeout(() => {
+      onLongPress(event)
+      setLongPressed(true)
+    }, delay)
+  }, [onLongPress, delay, preventDefault])
+
+  const clear = useCallback((event, doClick = true) => {
+    timeout.current && clearTimeout(timeout.current)
+    doClick && !longPressed && onClick()
+    setLongPressed(false)
+    if (preventDefault && target.current) {
+      target.current.removeEventListener('touchend', doPreventDefault)
+    }
+  }, [preventDefault, onClick, longPressed])
+
+    return {
+        onMouseDown: e => start(e),
+        onTouchStart: e => start(e),
+        onMouseUp: e => clear(e),
+        onMouseLeave: e => clear(e, false),
+        onTouchEnd: e => clear(e)
+    }
 }
 
 
 export {
   Dial,
   Meter,
+  Mood,
   useActivated,
   useInterval,
-  useRefresh,
-  When,
 }
