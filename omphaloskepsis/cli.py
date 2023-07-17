@@ -24,7 +24,7 @@ def cli(ctx, db):
 @click.pass_context
 def init(ctx, config, emails):
     import sqlalchemy
-    from . import accounts, db, snapshots, workouts
+    from . import accounts, db, snapshots
 
     static = {}
     if config:
@@ -35,9 +35,9 @@ def init(ctx, config, emails):
     root = os.path.dirname(db_path)
     if not os.path.isdir(root):
         os.makedirs(root)
-    engine = sqlalchemy.create_engine(f'sqlite:///{db_path}')
+    engine = db.engine(db_path)
     accounts.Model.metadata.create_all(engine)
-    sess = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=False)()
+    sess = db.sessionmaker(bind=engine, autoflush=False)()
     for email in emails:
         account = accounts.Account(auth=accounts.Auth(
             email=email,

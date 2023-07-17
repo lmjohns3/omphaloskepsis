@@ -1,16 +1,14 @@
 import base64
-import json
 import os
 import random
 import re
-import sqlalchemy
-import sqlalchemy.ext.declarative
 import struct
 import time
 
 from . import db
+from . import snapshots
 
-Model = sqlalchemy.ext.declarative.declarative_base()
+Model = db.declarative_base()
 
 def encode_id(x):
     return base64.urlsafe_b64encode(struct.pack('>q', x))[:-1]
@@ -22,15 +20,16 @@ def decode_id(x):
 class Account(Model):
     __tablename__ = 'accounts'
 
+    STRINGS = frozenset()
+
     id = db.Column(db.Integer, primary_key=True, default=lambda: random.getrandbits(63))
 
-    # A JSON-encoded blob of account information, used client-side.
-    config = db.Column(db.LargeBinary, default=b'{}')
+    kv = db.Column(db.LargeBinary)
 
     def open_db(self, root, echo=False):
         enc = encode_id(self.id).decode('utf8')
         path = os.path.join(root, enc[-1], enc[-2], f'{enc}.db')
-        self.session = sqlalchemy.orm.sessionmaker(bind=db.engine(path, echo), autoflush=False)()
+        self.session = db.sessionmaker(bind=db.engine(path, echo), autoflush=False)()
 
     def create_db(self, root):
         enc = encode_id(self.id).decode('utf8')
@@ -38,20 +37,22 @@ class Account(Model):
         if not os.path.isdir(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
         if not os.path.exists(path):
-            db.Model.metadata.create_all(db.engine(path))
+            snapshots.Model.metadata.create_all(db.engine(path))
 
     def update_from(self, data):
-        if 'config' in data:
-            self.config = json.dumps(data['config'])
-        if self.auth._valid_password(data.get('password', '')):
-            self.auth.password = data['password']
+        self.kv = db.update_json(self.kv, data, Account.STRINGS)
 
     def to_dict(self):
         return dict(
-            config=json.loads(self.config),
+            kv=db.decompress_json(self.kv),
             auth=self.auth.to_dict(),
             keys=[k.to_dict() for k in self.keys],
         )
+
+
+def AccountKeyColumn():
+    fk = db.ForeignKey('accounts.id', onupdate='CASCADE', ondelete='CASCADE')
+    return db.Column(db.Integer, fk, nullable=False)
 
 
 class Auth(Model):
@@ -59,8 +60,9 @@ class Auth(Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
-    account = db.OneToOneRelationship(Account, 'auth')
+    account_id = AccountKeyColumn()
+    account = db.relationship(Account, lazy='joined', uselist=False,
+                              backref=db.backref('auth', uselist=False))
 
     created_utc = db.Column(db.Integer, default=time.time, nullable=False)
 
@@ -79,7 +81,7 @@ class Auth(Model):
     reset_requested_utc = db.Column(db.Integer, default=-1, nullable=False)
 
     def _valid_password(self, p):
-        return all((len(p) > 15,
+        return all((len(p) > 7,
                     p != self.password,
                     re.search(r'\w', p),
                     re.search(r'\W', p)))
@@ -101,8 +103,8 @@ class Key(Model):
     created_utc = db.Column(db.Integer, default=time.time, nullable=False)
     last_used_utc = db.Column(db.Integer)
 
-    account_id = db.Column(db.Integer, db.CascadeForeignKey('accounts'), nullable=False)
-    account = sqlalchemy.orm.relationship(Account, backref='keys', lazy='selectin')
+    account_id = AccountKeyColumn()
+    account = db.relationship(Account, backref='keys', lazy='selectin')
 
     description = db.Column(db.String)
     keyid = db.Column(db.String, unique=True, nullable=False)
