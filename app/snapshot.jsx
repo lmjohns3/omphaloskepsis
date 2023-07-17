@@ -3,7 +3,7 @@ import { useLoaderData, useNavigate } from 'react-router-dom'
 import showdown from 'showdown'
 
 import { apiRead, apiUpdate, apiDelete } from './api.jsx'
-import { Dial, Meter, When } from './common.jsx'
+import { Dial, Meter, Mood } from './common.jsx'
 import { Map } from './geo.jsx'
 import lib from './lib.jsx'
 
@@ -19,34 +19,58 @@ const Snapshot = () => {
   }, [])
 
   const navigate = useNavigate()
-  const [snapshot, setSnapshot] = useState(useLoaderData())
+  const snapshot = useLoaderData()
+  const [fields, setFields] = useState(snapshot.kv)
 
-  const update = data => apiUpdate(`snapshot/${snapshot.id}`, data).then(setSnapshot)
+  const updateField = attr => value => (
+    apiUpdate(`snapshot/${snapshot.id}`, { [attr]: value })
+      .then(res => setFields(res.kv)))
 
-  return snapshot ? (
-    <div className='snapshot'>
-      <Map lat={snapshot.lat || 0}
-           lng={snapshot.lng || 0}
-           onChanged={([lat, lng]) => update({ lat, lng })} />
-      <div className='container'>
-        <When utc={snapshot.utc} tz={snapshot.tz} />
-        <Vitals snapshot={snapshot} update={update} />
-        <Text value={snapshot.note} update={v => update({ note: v })} />
-        <button className='delete' onClick={() => {
-                  if (confirm('Really delete?')) {
-                    apiDelete(`snapshot/${snapshot.id}`).then(() => navigate(-1))
-                  }
-                }}>🗑️</button>
+  return (
+    <div className='snapshot container'>
+      <Mood value={fields.mood} update={updateField('mood')} />
+
+      <div className='feels'>
+        <Dial icon='😄' attr='joy' value={fields.joy} update={updateField('joy')} />
+        <Dial icon='😢' attr='sadness' value={fields.sadness} update={updateField('sadness')} />
+        <Dial icon='😠' attr='anger' value={fields.anger} update={updateField('anger')} />
+        <Dial icon='😨' attr='fear' value={fields.fear} update={updateField('fear')} />
       </div>
+
+      <Meter update={updateField('height_cm')} value={fields.height_cm}
+             emoji='📏' label='Height' formats={{ 'in': 0.3937, 'cm': null }} />
+      <Meter update={updateField('weight_kg')} value={fields.weight_kg}
+             emoji='⚖️' label='Weight' formats={{ 'lb': 2.20462, 'st': 0.15747, 'kg': null }} />
+      <Meter update={updateField('body_temp_degc')} value={fields.body_temp_degc}
+             emoji='🌡️' label='Temp' formats={{ '°C': null, '°F': [
+               degc => degc * 1.8 + 32, degf => (degf - 32) / 1.8 ] }} />
+      <Meter update={updateField('heart_rate_bpm')} value={fields.heart_rate_bpm}
+             emoji='💗️' label='Pulse' formats={{ 'bpm': null, 'Hz': 1 / 60 }} />
+      <Meter update={updateField('blood_pressure_mmhg')} value={fields.blood_pressure_mmhg}
+             emoji='🫀️' label='Blood Pressure' formats={{ 'mmHg': null }} />
+      <Meter update={updateField('blood_oxygen_spo2_pct')} value={fields.blood_oxygen_spo2_pct}
+             emoji='🩸' label='Blood Oxygen' formats={{ '%': null }} />
+      <Meter update={updateField('vo2_max_ml_kg_min')} value={fields.vo2_max_ml_kg_min}
+             emoji='🫁' label='VO2 max' formats={{ 'mL/(kg·min)': null }} />
+      <Meter update={updateField('lactate_mmol_l')} value={fields.lactate_mmol_l}
+             emoji='💪' label='Lactate' formats={{ 'mmol/L': null }} />
+      <Meter update={updateField('glucose_mmol_l')} value={fields.glucose_mmol_l}
+             emoji='🍭' label='Glucose' formats={{ 'mmol/L': null }} />
+      <Text value={snapshot.note || ''} update={value => update({ note: value })} />
+      <button className='delete' onClick={() => {
+                if (confirm('Really delete?')) {
+                  apiDelete(`snapshot/${snapshot.id}`).then(() => navigate('/'))
+                }
+              }}>🗑️</button>
     </div>
-  ) : null
+  )
 }
 
 
 const Text = ({ value, update }) => {
   const [isEditing, setIsEditing] = useState(false)
   return isEditing ? (
-    <textarea defaultValue={value || 'Click to edit!'}
+    <textarea autoFocus defaultValue={value}
               onBlur={e => { setIsEditing(false); update(e.target.value) }} />
   ) : (
     <div className='rendered'
@@ -60,43 +84,6 @@ const Text = ({ value, update }) => {
 
 const Vitals = ({ snapshot, update }) => (
   <div className='vitals'>
-    <div className='mood'>
-      <span className='bar' onClick={e => {
-              const { width } = e.target.getBoundingClientRect()
-              const x = e.nativeEvent.offsetX
-              update({ mood: Math.max(-1.0, Math.min(1.0, 2 * x / width - 1)) })
-            }}></span>
-      {snapshot.mood ? <span className='marker cur' style={{ left: `${Math.round(50 * (1 + snapshot.mood))}%` }}>📍</span> : null}
-      <span className='marker lo'>😞</span>
-      <span className='marker hi'>😊</span>
-    </div>
-
-    <div className='feels'>
-      <Dial icon='😄' attr='joy' value={snapshot.joy} update={update} />
-      <Dial icon='😢' attr='sadness' value={snapshot.sadness} update={update} />
-      <Dial icon='😠' attr='anger' value={snapshot.anger} update={update} />
-      <Dial icon='😨' attr='fear' value={snapshot.fear} update={update} />
-    </div>
-
-    <Meter update={update} value={snapshot.height_cm} emoji='📏' label='Height'
-           attr='height_cm' formats={{ 'in': 0.3937, 'cm': null }} />
-    <Meter update={update} value={snapshot.weight_kg} emoji='⚖️' label='Weight'
-           attr='weight_kg' formats={{ 'lb': 2.20462, 'st': 0.15747, 'kg': null }} />
-    <Meter update={update} value={snapshot.body_temp_degc} emoji='🌡️' label='Temp'
-           attr='body_temp_degc' formats={{ '°C': null, '°F': [
-             degc => degc * 1.8 + 32, degf => (degf - 32) / 1.8 ] }} />
-    <Meter update={update} value={snapshot.heart_rate_bpm} emoji='💗️' label='Pulse'
-           attr='heart_rate_bpm' formats={{ 'bpm': null, 'Hz': 1 / 60 }} />
-    <Meter update={update} value={snapshot.blood_pressure_mmhg} emoji='🫀️' label='Pressure'
-           attr='blood_pressure_mmhg' formats={{ 'mmHg': null }} />
-    <Meter update={update} value={snapshot.blood_oxygen_spo2_pct} emoji='🩸' label='Oxygen'
-           attr='blood_oxygen_spo2_pct' formats={{ '%': null }} />
-    <Meter update={update} value={snapshot.vo2_max_ml_kg_min} emoji='🫁' label='V02 max'
-           attr='vo2_max_ml_kg_min' formats={{ 'mL/(kg·min)': null }} />
-    <Meter update={update} value={snapshot.lactate_mmol_l} emoji='💪' label='Lactate'
-           attr='lactate_mmol_l' formats={{ 'mmol/L': null }} />
-    <Meter update={update} value={snapshot.glucose_mmol_l} emoji='🍭' label='Glucose'
-           attr='glucose_mmol_l' formats={{ 'mmol/L': null }} />
   </div>
 )
 
