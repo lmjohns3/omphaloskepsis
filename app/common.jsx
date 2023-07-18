@@ -158,4 +158,5 @@ export {
   Dial,
   Meter,
   Mood,
+  useLongPress,
 }
