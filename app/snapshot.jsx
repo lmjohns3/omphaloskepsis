@@ -4,7 +4,7 @@ import showdown from 'showdown'
 
 import { apiRead, apiUpdate, apiDelete } from './api.jsx'
 import { Dial, Meter, Mood } from './common.jsx'
-import { Map } from './geo.jsx'
+import { Map, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
 
 import './snapshot.styl'
@@ -23,11 +23,19 @@ const Snapshot = () => {
   const [fields, setFields] = useState(snapshot.kv)
 
   const updateField = attr => value => (
-    apiUpdate(`snapshot/${snapshot.id}`, { [attr]: value })
-      .then(res => setFields(res.kv)))
+    apiUpdate(`snapshot/${snapshot.id}`, { [attr]: value }).then(() => navigate(0)))
+
+  const updateLatLng = ([lat, lng]) => (
+    apiUpdate(`snapshot/${snapshot.id}`, { lat, lng }).then(() => navigate(0)))
 
   return (
     <div className='snapshot container'>
+      {snapshot.lat && snapshot.lng
+       ? <Map lat={snapshot.lat} lng={snapshot.lng} onChanged={value => updateLatLng(value)} />
+       : <button onClick={() => useGeo().then(
+                   geo => updateLatLng([geo.coords.latitude, geo.coords.longitude])
+                 )}>Map</button>}
+
       <Mood value={fields.mood} update={updateField('mood')} />
 
       <div className='feels'>

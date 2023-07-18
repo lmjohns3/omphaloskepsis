@@ -29,6 +29,7 @@ import { Login } from './login.jsx'
 import { NewWorkout } from './new-workout.jsx'
 import { Snapshot } from './snapshot.jsx'
 import { Timeline } from './timeline.jsx'
+import { Workout } from './workout.jsx'
 
 import './index.styl'
 
@@ -56,10 +57,6 @@ const Dashboard = () => {
       <div className='cards'>
         <div className='card'>
           <h2>Where are you?</h2>
-          {coords ? <Map lat={coords.latitude}
-                         lng={coords.longitude}
-                         onChanged={([lat, lng]) => setCoords({ latitude: lat, longitude: lng })} />
-           : <button onClick={() => useGeo().then(geo => setCoords(geo?.coords))}>Map</button>}
         </div>
         <div className='card'>
           <h2>How are you feeling?</h2>
@@ -151,6 +148,11 @@ ReactDOM.createRoot(
               path: '/collection/:id/',
               loader: ({ params }) => apiRead(`collection/${params.id}`),
               element: <Collection />,
+            },
+            {
+              path: '/workout/:id/',
+              loader: ({ params }) => apiRead(`collection/${params.id}`),
+              element: <Workout />,
             },
           ],
         },
