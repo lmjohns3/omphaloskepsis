@@ -1,12 +1,6 @@
 .snapshot
-
-  textarea
-    font-size: 1rem
-    min-height: 10rem
-    width: calc(100% - 2rem)
-
   .rendered
-    min-height: 80vh
+    min-height: 30vh
 
     &:hover
       background: hsl(0, 0%, 90%)
@@ -121,35 +115,3 @@
       background hsl(0, 70%, 70%)
     &.afraid
       background hsl(120, 70%, 70%)
-
-.meter
-  display flex
-
-  span
-    flex 0 0 auto
-  .label
-    flex 0 0 5rem
-  .emoji
-    flex 0 0 1.5rem
-
-  .value
-    font-weight bold
-    text-align right
-
-    &.can-edit
-      cursor pointer
-
-  .unit
-    margin-left 0.5rem
-
-    &.options-2
-    &.options-3
-    &.options-4
-      cursor pointer
-
-      &:before
-        color hsl(300, 70%, 30%)
-        content '⟳ '
-
-  input
-    width 4rem
