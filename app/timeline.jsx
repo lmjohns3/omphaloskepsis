@@ -9,7 +9,6 @@ import { useLoaderData, useNavigate } from 'react-router-dom'
 import SunCalc from 'suncalc'
 
 import { apiCreate, apiRead, apiUpdate, apiDelete } from './api.jsx'
-import { useActivated } from './common.jsx'
 import lib from './lib.jsx'
 
 import './timeline.styl'
@@ -86,7 +85,6 @@ const Day = ({ yyyymmdd, days, snapshots, collections }) => {
   const left = dayFromKey(yyyymmdd)
   const snaps = (yyyymmdd in days) ? days[yyyymmdd].map(sid => snapshots[sid]) : []
   const sun = geoMoments(left, snaps)
-  const [ref, isActivated, setIsActivated] = useActivated()
 
   const seen = {}
   const children = []
@@ -108,21 +106,17 @@ const Day = ({ yyyymmdd, days, snapshots, collections }) => {
 
   return (
     <div className={['day',
-                     isActivated ? 'activated' : '',
                      left.format('ddd'),
                      left.format('MMM'),
-                     `the-${left.format('D')}`].join(' ')}
-         ref={ref}
-         onMouseDown={() => setIsActivated(true)}
-         onTouchStart={() => setIsActivated(true)}>
-      {!sun.t.sunset ? null : <>
+                     `the-${left.format('D')}`].join(' ')}>
+      {sun.t.sunset ? <>
         <div className='shadow' style={pcts(sun.tm1.sunset, sun.t.sunrise)}></div>
         <div className='shadow' style={pcts(sun.tm1.dusk, sun.t.dawn)}></div>
         <div className='shadow' style={pcts(sun.tm1.nauticalDusk, sun.t.nauticalDawn)}></div>
         <div className='shadow' style={pcts(sun.t.sunset, sun.tp1.sunrise)}></div>
         <div className='shadow' style={pcts(sun.t.dusk, sun.tp1.dawn)}></div>
         <div className='shadow' style={pcts(sun.t.nauticalDusk, sun.tp1.nauticalDawn)}></div>
-      </>}
+       </> : null}
       <span className='label'>{left.format(left.date() === 1 ? 'D dd MMM YYYY' : 'D dd')}</span>
       {children}
     </div>
@@ -184,8 +178,7 @@ const Collection = ({ left, collection, snapshots }) => {
 // to new times in the Timeline.
 const Snapshot = ({ left, snapshot, update, icon }) => {
   const navigate = useNavigate()
-
-  const [ref, isActivated, setIsActivated] = useActivated()
+  const ref = useRef()
 
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [dragStart, setDragStart] = useState(null)
@@ -198,7 +191,6 @@ const Snapshot = ({ left, snapshot, update, icon }) => {
     : { x: e.clientX, y: e.clientY }
 
   const doDelete = () => {
-    if (!isActivated) return
     if (needsConfirmation) {
       apiDelete(`snapshot/${snapshot.id}`).then(() => update(snapshot.id))
       setNeedsConfirmation(false)
@@ -215,8 +207,6 @@ const Snapshot = ({ left, snapshot, update, icon }) => {
     e.preventDefault()
     setDragStart(snapshotXY(e))
   }
-
-  useEffect(() => { setNeedsConfirmation(false) }, [isActivated])
 
   useEffect(() => {
     const handler = e => {
@@ -247,7 +237,6 @@ const Snapshot = ({ left, snapshot, update, icon }) => {
       apiUpdate(`snapshot/${snapshot.id}`, { utc: snapshot.utc }).then(update)
       setDragStart(null)
       setDragDelta({ x: 0, y: 0 })
-      setIsActivated(false)
     }
     if (dragDelta.x || dragDelta.y) {
       window.addEventListener('mouseup', handler)
@@ -266,20 +255,13 @@ const Snapshot = ({ left, snapshot, update, icon }) => {
   return (
     <div ref={ref}
          id={`snap-${snapshot.id}`}
-         className={`snapshot ${isActivated ? 'activated' : ''}`}
+         className='snapshot'
          style={{
            left: pct(left, dayjs.unix(snapshot.utc).add(dragDelta.x, 'm')),
            top: `calc(0.25rem + ${dayHeight * dragDelta.y}px)`,
          }}>
-      {isActivated && <div className='button delete' onClick={doDelete}>🗑️ {needsConfirmation ? '?' : null}</div>}
       <div className={`marker ${pol} pol-${Math.floor(abs / 26)}`}
-           title={HHmm}
-           onMouseDown={
-             () => snapshot.collection_id
-               ? navigate(`/collection/${snapshot.collection_id}/`)
-               : isActivated ? doEdit() : setIsActivated(true)
-           }>{isActivated ? '🔍' : icon ? icon : snapshot.note ? '📝' : '-'}</div>
-      {isActivated && <div className='button move' onMouseDown={onDragStart} onTouchStart={onDragStart}>☷</div>}
+           title={HHmm}>{icon || (snapshot.note ? '📝' : '-')}</div>
     </div>
   )
 }

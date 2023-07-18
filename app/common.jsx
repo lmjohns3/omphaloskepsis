@@ -9,43 +9,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import lib from './lib.jsx'
 
 
-// https://overreacted.io/making-setinterval-declarative-with-react-hooks/
-const useInterval = (callback, delay) => {
-  const cr = useRef()
-
-  useEffect(() => {
-    cr.current = callback
-  }, [callback])
-
-  useEffect(() => {
-    if (delay) {
-      const id = setInterval(() => cr.current(), delay)
-      return () => clearInterval(id)
-    }
-  }, [delay])
-}
-
-
-const useActivated = () => {
-  const [isActivated, setIsActivated] = useState(false)
-  const ref = useRef(null)
-
-  useEffect(() => {
-    const outside = e => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setIsActivated(false)
-      }
-    }
-    document.addEventListener('click', outside, true)
-    return () => {
-      document.removeEventListener('click', outside, true)
-    }
-  }, [])
-
-  return [ref, isActivated, setIsActivated]
-}
-
-
 const Dial = ({ icon, attr, value, update }) => {
   if (!value) return null
 
@@ -195,6 +158,4 @@ export {
   Dial,
   Meter,
   Mood,
-  useActivated,
-  useInterval,
 }
