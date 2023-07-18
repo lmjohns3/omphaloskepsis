@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useLoaderData, useNavigate, useParams } from 'react-router-dom'
+import Select, { createFilter } from 'react-select'
 
 import { apiRead, apiUpdate } from './api.jsx'
 import lib from './lib.jsx'
@@ -14,16 +15,6 @@ const NewWorkout = () => {
   const [shuffle, setShuffle] = useState(false)
   const [repeats, setRepeats] = useState(false)
   const [numRepeats, setNumRepeats] = useState(2)
-  const [activeTag, setActiveTag] = useState('')
-
-  const tags = useMemo(() => {
-    const index = {}
-    Object.entries(exercises).forEach(([name, { tags }]) => tags.forEach(tag => {
-      if (!index[tag]) index[tag] = new Set()
-      index[tag].add(name)
-    }))
-    return index
-  }, [exercises])
 
   const update = idx => (attr, value) => setGoals(cur => [
     ...cur.slice(0, idx),
@@ -40,7 +31,7 @@ const NewWorkout = () => {
     const limit = repeats ? numRepeats : 1
     for (let i = 0; i < limit; ++i)
       expanded.push(...(shuffle ? lib.shuffle(goals) : goals))
-    apiUpdate('collections', { flavor: 'workout', goals: JSON.stringify(goals) })
+    apiUpdate('collections', { flavor: 'workout', goals: JSON.stringify(expanded) })
       .then(res => navigate(`/workout/${res.id}/`))
   }
 
@@ -53,56 +44,72 @@ const NewWorkout = () => {
         <span>Workout Goals</span>
       </h1>
 
-      {goals.length > 0 ? (
-        <table className='goals'>
-          <thead><tr><td></td><th>Exercise</th><th>🪨 Resistance</th><th>🧮 Reps</th><th>📍️ Distance</th><th>⏲️ Duration</th><td></td></tr></thead>
-          <tbody>{goals.map((goal, idx) => (
-            <tr key={idx}>
-              <td key='move'>{shuffle ? null : '☷'}</td>
-              <td key='name'>{goal.name}</td>
-              <Cell key='difficulty'
-                    attr='difficulty'
-                    goal={goal}
-                    updateAll={updateAll}
-                    update={update(idx)} />
-              <Cell key='reps'
-                    attr='reps'
-                    goal={goal}
-                    parse={parseInt}
-                    updateAll={updateAll}
-                    update={update(idx)} />
-              <Cell key='distance_m'
-                    attr='distance_m'
-                    goal={goal}
-                    parse={parseInt}
-                    updateAll={updateAll}
-                    update={update(idx)} />
-              <Cell key='duration_s'
-                    attr='duration_s'
-                    goal={goal}
-                    format={value => value ? lib.formatDuration(value) : ''}
-                    parse={lib.parseDuration}
-                    updateAll={updateAll}
-                    update={update(idx)} />
-              <td key='remove'>
-                <button className='remove' onClick={() => setGoals(
-                          cur => [ ...cur.slice(0, idx), ...cur.slice(idx + 1) ])}>×</button>
-              </td>
-            </tr>))}
-          </tbody>
-        </table>
-      ) : null}
+      <table className='goals'>
+        <thead><tr><td></td><th>Exercise</th><th>🪨 Resistance</th><th>🧮 Reps</th><th>📍️ Distance</th><th>⏲️ Duration</th><td></td></tr></thead>
+        <tbody>{goals.map((goal, idx) => (
+          <tr key={idx}>
+            <td key='move'>{shuffle ? null : '☷'}</td>
+            <td key='name'>{goal.name}</td>
+            <Cell key='difficulty'
+                  attr='difficulty'
+                  goal={goal}
+                  updateAll={updateAll}
+                  update={update(idx)} />
+            <Cell key='reps'
+                  attr='reps'
+                  goal={goal}
+                  parse={parseInt}
+                  updateAll={updateAll}
+                  update={update(idx)} />
+            <Cell key='distance_m'
+                  attr='distance_m'
+                  goal={goal}
+                  parse={parseInt}
+                  updateAll={updateAll}
+                  update={update(idx)} />
+            <Cell key='duration_s'
+                  attr='duration_s'
+                  goal={goal}
+                  format={value => value ? lib.formatDuration(value) : ''}
+                  parse={lib.parseDuration}
+                  updateAll={updateAll}
+                  update={update(idx)} />
+            <td key='remove'>
+              <button className='remove' onClick={() => setGoals(
+                        cur => [ ...cur.slice(0, idx), ...cur.slice(idx + 1) ])}>×</button>
+            </td>
+          </tr>))}
+        </tbody>
+        <tfoot>
+          <tr><td></td><td colSpan='5'>
+            <Select
+              key={goals.map(({ name }) => name).join('-')}
+              placeholder='Add an exercise...'
+              options={Object.entries(exercises).sort((a, b) => a[0].localeCompare(b[0]))}
+              filterOption={createFilter({
+                stringify: option => `${option.label} ${exercises[option.label].tags.join(' ')}`
+              })}
+              getOptionLabel={([name, _]) => name}
+              getOptionValue={([name, _]) => name}
+              styles={{
+                control: (base, state) => ({ ...base, backgroundColor: '#444' }),
+                placeholder: (base, state) => ({ ...base, color: 'inherit' }),
+                menu: (base, state) => ({ ...base, backgroundColor: '#444' }),
+                option: (base, state) => ({ ...base, backgroundColor: state.isFocused ? '#333' : 'inherit' }),
+              }}
+              onChange={([name, _]) => setGoals(cur => [...cur, { name }])}
+            /></td></tr>
+        </tfoot>
+      </table>
 
-      {goals.length > 0 ? (<>
-        <span id='repeats' className={`toggle ${repeats ? 'toggled' : ''}`}
-              onClick={() => setRepeats(s => !s)}></span>
-        <label htmlFor='repeats'>Repeat</label>
-        {repeats ? <input id='num-repeats' value={numRepeats} onChange={e => setNumRepeats(e.target.value)} /> : null}
-        <br/>
-        <span id='shuffle' className={`toggle ${shuffle ? 'toggled' : ''}`}
-              onClick={() => setShuffle(s => !s)}></span>
-        <label htmlFor='shuffle'>Shuffle</label>
-      </>): null}
+      <span id='repeats' className={`toggle ${repeats ? 'toggled' : ''}`}
+            onClick={() => setRepeats(s => !s)}></span>
+      <label htmlFor='repeats'>Repeat</label>
+      {repeats ? <input id='num-repeats' value={numRepeats} onChange={e => setNumRepeats(e.target.value)} /> : null}
+      <br/>
+      <span id='shuffle' className={`toggle ${shuffle ? 'toggled' : ''}`}
+            onClick={() => setShuffle(s => !s)}></span>
+      <label htmlFor='shuffle'>Shuffle</label>
 
       <h2>Copy from another workout...</h2>
       <ul className='other-workouts'>{Object.entries(workouts).map(([name, exs]) => (
@@ -112,24 +119,7 @@ const NewWorkout = () => {
             <span className='name'>{name}</span>
             {exs.map(n => <span key={n} className='exercise'>{n}</span>)}
           </li>
-        )))}</ul>
-
-      <h2>Add individual exercises...</h2>
-      <select className='tags' onChange={e => setActiveTag(e.target.value)}>
-        <option key='all' value=''>Filter...</option>
-        {Object.keys(tags).sort().map(tag => <option key={tag} value={tag}>{tag}</option>)}
-      </select>
-      <ul className='exercises'>{
-        Object.entries(exercises)
-              .sort((a, b) => a[0].localeCompare(b[0]))
-              .map(([name, ex]) => (activeTag === '' || ex.tags.indexOf(activeTag) >= 0) ? (
-                <li key={name}>
-                  <button className='add' onClick={() => setGoals(cur => [ ...cur, { name } ])}>+</button>
-                  <img src={`/static/img/${ex.image}`} />
-                  <span className='name'>{name}</span>
-                </li>
-              ) : null)
-      }</ul>
+      )))}</ul>
     </div>
   )
 }

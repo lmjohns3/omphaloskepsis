@@ -71,7 +71,7 @@
 
     tbody
       tr:nth-child(odd) td
-        background hsl(0deg, 0%, 95%)
+        background-color hsla(0deg, 0%, 50%, 0.3)
         &:last-child
           background transparent
 
@@ -80,6 +80,9 @@
         color hsl(0deg, 0%, 70%)
         &:last-child
           background transparent
+
+    tfoot td
+      padding-top 0.5em
 
     button.remove
     button.update-all
@@ -92,49 +95,9 @@
     button.update-all
       margin-left 0.5em
 
-  #repeats
+  #num-repeats
     margin-left 0.5em
     width 3em
-
-  .exercises
-  .tags
-    display flex
-    flex-flow row wrap
-    line-height 1
-    padding 0
-
-    li
-      align-items center
-      border-radius 0.5rem
-      display flex
-      flex 0 0 auto
-      font-size smaller
-      gap 0.5em
-
-  .exercises
-    gap 2em
-
-    li
-      width 10em
-
-      button.add
-        flex 0 0 1.5rem
-
-      img
-        border-radius 0.1em
-        max-height 3em
-        max-width 3em
-
-  .tags
-    gap 0.2rem
-    margin 0.5em 0
-
-    li
-      background hsl(45deg, 50%, 90%)
-      padding 0.5em 1em
-
-      &.active
-        background hsl(45deg, 50%, 80%)
 
   .other-workouts
     padding 0
