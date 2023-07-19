@@ -1,3 +1,7 @@
+import dayjs from 'dayjs'
+dayjs.extend(require('dayjs/plugin/utc'))
+dayjs.extend(require('dayjs/plugin/timezone'))
+
 import React, { useEffect, useState } from 'react'
 import { useLoaderData, useNavigate } from 'react-router-dom'
 import showdown from 'showdown'
@@ -22,27 +26,37 @@ const Snapshot = () => {
   const snapshot = useLoaderData()
   const [fields, setFields] = useState(snapshot.kv)
 
+  const updateNote = note => apiUpdate(`snapshot/${snapshot.id}`, { note })
+  const updateLatLng = ([lat, lng]) => apiUpdate(`snapshot/${snapshot.id}`, { lat, lng })
   const updateField = attr => value => (
-    apiUpdate(`snapshot/${snapshot.id}`, { [attr]: value }).then(() => navigate(0)))
+    apiUpdate(`snapshot/${snapshot.id}`, { [attr]: value }).then(res => setFields(res.kv)))
 
-  const updateLatLng = ([lat, lng]) => (
-    apiUpdate(`snapshot/${snapshot.id}`, { lat, lng }).then(() => navigate(0)))
+  const when = dayjs.unix(snapshot.utc).tz(snapshot.tz)
 
   return (
     <div className='snapshot container'>
+      <div className='when'>
+        {['H:mm a', 'dddd', 'M', 'MMMM', 'D', 'YYYY'].map(
+          fmt => <span className={fmt.replace(/\W+/g, '-')}>{when.format(fmt)}</span>
+        )}
+      </div>
+
       {snapshot.lat && snapshot.lng
        ? <Map lat={snapshot.lat} lng={snapshot.lng} onChanged={value => updateLatLng(value)} />
        : <button onClick={() => useGeo().then(
                    geo => updateLatLng([geo.coords.latitude, geo.coords.longitude])
-                 )}>Map</button>}
+                 )}>📍️</button>}
 
-      <Mood value={fields.mood} update={updateField('mood')} />
 
-      <div className='feels'>
-        <Dial icon='😄' attr='joy' value={fields.joy} update={updateField('joy')} />
-        <Dial icon='😢' attr='sadness' value={fields.sadness} update={updateField('sadness')} />
-        <Dial icon='😠' attr='anger' value={fields.anger} update={updateField('anger')} />
-        <Dial icon='😨' attr='fear' value={fields.fear} update={updateField('fear')} />
+      <div>
+        <h2>Mood</h2>
+        <Mood value={fields.mood} update={updateField('mood')} />
+        <div className='feels'>
+          <Dial icon='😄' label='Joy' value={fields.joy} update={updateField('joy')} />
+          <Dial icon='😢' label='Sadness' value={fields.sadness} update={updateField('sadness')} />
+          <Dial icon='😠' label='Anger' value={fields.anger} update={updateField('anger')} />
+          <Dial icon='😨' label='Fear' value={fields.fear} update={updateField('fear')} />
+        </div>
       </div>
 
       <Meter update={updateField('height_cm')} value={fields.height_cm}
@@ -64,12 +78,17 @@ const Snapshot = () => {
              emoji='💪' label='Lactate' formats={{ 'mmol/L': null }} />
       <Meter update={updateField('glucose_mmol_l')} value={fields.glucose_mmol_l}
              emoji='🍭' label='Glucose' formats={{ 'mmol/L': null }} />
-      <Text value={snapshot.note || ''} update={value => update({ note: value })} />
+
+      <div className='note'>
+        <h2>Note</h2>
+        <Text value={snapshot.note || ''} update={value => updateNote(value)} />
+      </div>
+
       <button className='delete' onClick={() => {
                 if (confirm('Really delete?')) {
-                  apiDelete(`snapshot/${snapshot.id}`).then(() => navigate('/'))
+                  apiDelete(`snapshot/${snapshot.id}`).then(() => navigate(-1))
                 }
-              }}>🗑️</button>
+              }}>🗑️ Delete</button>
     </div>
   )
 }
@@ -88,12 +107,6 @@ const Text = ({ value, update }) => {
          }} />
   )
 }
-
-
-const Vitals = ({ snapshot, update }) => (
-  <div className='vitals'>
-  </div>
-)
 
 
 export { Snapshot }
