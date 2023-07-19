@@ -126,17 +126,15 @@ const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700
       (event.preventDefault)) ? event.preventDefault() : null
 
   const start = useCallback(event => {
-    if (shouldPreventDefault && event.target) {
+    if (event.button !== 0) return
+    if (preventDefault && event.target) {
       event.target.addEventListener('touchend', doPreventDefault, { passive: false })
       target.current = event.target
     }
-    timeout.current = setTimeout(() => {
-      onLongPress(event)
-      setLongPressed(true)
-    }, delay)
+    timeout.current = setTimeout(() => { onLongPress(event); setLongPressed(true) }, delay)
   }, [onLongPress, delay, preventDefault])
 
-  const clear = useCallback((event, doClick = true) => {
+  const clear = useCallback((event, doClick) => {
     timeout.current && clearTimeout(timeout.current)
     doClick && !longPressed && onClick()
     setLongPressed(false)
@@ -145,13 +143,13 @@ const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700
     }
   }, [preventDefault, onClick, longPressed])
 
-    return {
-        onMouseDown: e => start(e),
-        onTouchStart: e => start(e),
-        onMouseUp: e => clear(e),
-        onMouseLeave: e => clear(e, false),
-        onTouchEnd: e => clear(e)
-    }
+  return {
+    onMouseDown: e => start(e),
+    onTouchStart: e => start(e),
+    onMouseUp: e => clear(e, true),
+    onMouseLeave: e => clear(e, false),
+    onTouchEnd: e => clear(e, true),
+  }
 }
 
 
