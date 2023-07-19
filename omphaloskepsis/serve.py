@@ -80,11 +80,11 @@ def get_dashboard():
     return flask.jsonify(result)
 
 
-@app.route('/api/graphs/', methods=['GET'])
-def get_graphs():
+@app.route('/api/habits/', methods=['GET'])
+def get_habits():
     req = flask.request
-    result = {}
-    return flask.jsonify(result)
+    return _json(req.acct.session.scalars(
+        sqlalchemy.select(Collection).where(Collection.flavor == 'habit')))
 
 
 @app.route('/api/timeline/', methods=['GET'])
