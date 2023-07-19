@@ -9,8 +9,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import lib from './lib.jsx'
 
 
-const Dial = ({ icon, attr, value, update }) => {
-  if (!value) return null
+const Dial = ({ icon, label, value, update }) => {
+  value = value ?? 0
 
   const levels = 20
   const range = 1.3333 * Math.PI
@@ -29,16 +29,17 @@ const Dial = ({ icon, attr, value, update }) => {
     const x = e.nativeEvent.offsetX, y = e.nativeEvent.offsetY
     const angle = Math.atan2(1 - 2 * y / height, 2 * x / width - 1)
     const level = angle2level(angle)
-    update({ [attr]: Math.max(0.0, Math.min(1.0, level / levels)) })
+    update(Math.max(0.0, Math.min(1.0, level / levels)))
   }
 
   return (
     <div className='dial'>
-      <span className={`arc level ${attr}`} style={{ clipPath: `polygon(${points.join(', ')})` }}></span>
+      <span className={`arc level ${label.toLowerCase()}`}
+            style={{ clipPath: `polygon(${points.join(', ')})` }}></span>
       <span className='arc range' onClick={handle}></span>
       <span className='icon'>{icon}</span>
       <span className='value'>{Math.round(100 * value)}%</span>
-      <span className='label'>{attr.charAt(0).toUpperCase() + attr.slice(1)}</span>
+      <span className='label'>{label}</span>
     </div>
   )
 }
@@ -70,7 +71,7 @@ const Meter = ({ value, label, emoji, formats, update }) => {
   const storedValue = value
   const displayedValue = convertToDisplay(storedValue)
 
-  return (
+  return (value === null || value === undefined) ? null : (
     <div className='meter'>
       {!emoji ? null : <span className='emoji'>{emoji}</span>}
       <span className='label'>{label}</span>
