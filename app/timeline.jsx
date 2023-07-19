@@ -9,6 +9,7 @@ import { useLoaderData, useNavigate } from 'react-router-dom'
 import SunCalc from 'suncalc'
 
 import { apiCreate, apiRead, apiUpdate, apiDelete } from './api.jsx'
+import { useLongPress } from './common.jsx'
 import lib from './lib.jsx'
 
 import './timeline.styl'
@@ -151,10 +152,12 @@ const Collection = ({ left, collection, snapshots }) => {
       {(allSnaps.length > 1 && !isWorkout) ? (
         <div className='duration'
              title={`${collection.flavor} ${lib.formatDuration(lib.last(allSnaps).utc - allSnaps[0].utc)}`}
-             style={{ left: pct(left, first), width: pct(first, last) }}
-             onClick={() => navigate(`/collection/${collection.id}/`)}></div>
+             style={{ left: pct(left, first), width: pct(first, last) }}></div>
       ) : null}
-      <Snapshot left={left} icon={isWorkout ? '🏋️' : isSleep ? '💤' : isHabit ? collection.kv.icon : null} snapshot={visibleSnaps[0]} />
+      <Snapshot left={left}
+                url={isWorkout ? `/workout/${collection.id}/` : isHabit ? `/collection/${collection.id}/` : null}
+                icon={isWorkout ? '🏋️' : isSleep ? '💤' : isHabit ? collection.kv.icon : null}
+                snapshot={visibleSnaps[0]} />
       {isSleep && allSnaps.length === 1 && (
         <div className='snapshot wakeup'
              style={{ left: pct(left, right) }}
@@ -176,96 +179,89 @@ const Collection = ({ left, collection, snapshots }) => {
 // Visually, Snapshots show up as a marker that, when tapped, toggles a
 // context menu of edit/delete tools. The "move" tool lets us drag Snapshots
 // to new times in the Timeline.
-const Snapshot = ({ left, snapshot, update, icon }) => {
+const Snapshot = ({ left, snapshot, icon, url }) => {
   const navigate = useNavigate()
   const ref = useRef()
 
-  const [needsConfirmation, setNeedsConfirmation] = useState(false)
+  const mood = snapshot.kv.mood || 0
+  const pol = mood > 0 ? 'pos' : mood < 0 ? 'neg' : ''
+  const canLongPress = !(url ?? '').startsWith('/workout')
+
   const [dragStart, setDragStart] = useState(null)
   const [dragDelta, setDragDelta] = useState({ x: 0, y: 0 })
 
   const dayHeight = ref.current ? ref.current.parentNode.getBoundingClientRect().height : 0
-  const HHmm = dayjs.unix(snapshot.utc).tz(snapshot.tz).format('H:mm')
   const snapshotXY = e => e.type.match(/^touch/)
     ? { x: e.touches[0].pageX, y: e.touches[0].pageY }
     : { x: e.clientX, y: e.clientY }
 
-  const doDelete = () => {
-    if (needsConfirmation) {
-      apiDelete(`snapshot/${snapshot.id}`).then(() => update(snapshot.id))
-      setNeedsConfirmation(false)
-    } else {
-      setNeedsConfirmation(true)
-    }
-  }
-
-  const doEdit = () => navigate(
-    snapshot.collection_id ? `/collection/${snapshot.collection_id}/` : `/snapshot/${snapshot.id}/`)
-
-  const onDragStart = e => {
-    if (e.button !== 0) return
+  const onDrag = e => {
     e.preventDefault()
-    setDragStart(snapshotXY(e))
+    const { x, y } = snapshotXY(e)
+    setDragDelta({
+      x: 1440 * (x - dragStart.x) / window.innerWidth,
+      y: Math.floor((y - dragStart.y) / dayHeight)
+    })
   }
 
   useEffect(() => {
-    const handler = e => {
-      e.preventDefault()
-      const { x, y } = snapshotXY(e)
-      setDragDelta({
-        x: 1440 * (x - dragStart.x) / window.innerWidth,
-        y: Math.floor((y - dragStart.y) / dayHeight)
-      })
-    }
     if (dragStart) {
-      window.addEventListener('mousemove', handler)
-      window.addEventListener('touchmove', handler)
+      window.addEventListener('mousemove', onDrag)
+      window.addEventListener('touchmove', onDrag)
       return () => {
-        window.removeEventListener('mousemove', handler)
-        window.removeEventListener('touchmove', handler)
+        window.removeEventListener('mousemove', onDrag)
+        window.removeEventListener('touchmove', onDrag)
       }
     }
   }, [dragStart])
 
+  const onDrop = e => {
+    e.preventDefault()
+    snapshot.utc = dayjs.unix(snapshot.utc)
+      .add(dragDelta.x, 'm')
+      .subtract(dragDelta.y, 'd')
+      .unix()
+    apiUpdate(`snapshot/${snapshot.id}`, { utc: snapshot.utc }).then(() => navigate('/timeline/'))
+    setDragStart(null)
+    setDragDelta({ x: 0, y: 0 })
+  }
+
   useEffect(() => {
-    const handler = e => {
-      e.preventDefault()
-      snapshot.utc = dayjs.unix(snapshot.utc)
-        .add(dragDelta.x, 'm')
-        .subtract(dragDelta.y, 'd')
-        .unix()
-      apiUpdate(`snapshot/${snapshot.id}`, { utc: snapshot.utc }).then(update)
-      setDragStart(null)
-      setDragDelta({ x: 0, y: 0 })
-    }
     if (dragDelta.x || dragDelta.y) {
-      window.addEventListener('mouseup', handler)
-      window.addEventListener('touchstop', handler)
+      window.addEventListener('mouseup', onDrop)
+      window.addEventListener('touchend', onDrop)
       return () => {
-        window.removeEventListener('mouseup', handler)
-        window.removeEventListener('touchstop', handler)
+        window.removeEventListener('mouseup', onDrop)
+        window.removeEventListener('touchend', onDrop)
       }
     }
   }, [dragDelta.x, dragDelta.y])
 
-  const mood = snapshot.kv.mood || 0
-  const pol = mood > 0 ? 'pos' : mood < 0 ? 'neg' : ''
-  const abs = 100 * Math.abs(mood)
+  const onClick = e => navigate(url || `/snapshot/${snapshot.id}/`)
+
+  const clickHandlers = canLongPress
+        ? useLongPress(e => setDragStart(snapshotXY(e)), onClick, { delay: 400 })
+        : { onClick }
 
   return (
     <div ref={ref}
-         id={`snap-${snapshot.id}`}
-         className='snapshot'
+         id={`snapshot-${snapshot.id}`}
+         className={`snapshot ${dragStart ? 'dragging' : ''}`}
          style={{
            left: pct(left, dayjs.unix(snapshot.utc).add(dragDelta.x, 'm')),
            top: `calc(0.25rem + ${dayHeight * dragDelta.y}px)`,
-         }}>
-      <div className={`marker ${pol} pol-${Math.floor(abs / 26)}`}
-           title={HHmm}>{icon || (snapshot.note ? '📝' : '-')}</div>
+         }}
+         {...clickHandlers}>
+      <div className={`marker ${pol}${Math.floor(100 * Math.abs(mood) / 26)}`}
+           title={dayjs.unix(snapshot.utc).tz(snapshot.tz).format('H:mm')}>
+        {dragStart ? '☷' :
+         icon ? icon :
+         snapshot.note ? '📝' :
+         snapshot.lat ? '📍️' :
+         '📌'}
+      </div>
     </div>
   )
 }
-
-// 📍️
 
 export { Timeline }
