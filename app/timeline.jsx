@@ -35,17 +35,13 @@ const Timeline = () => {
 
   return (
     <div className='timeline'>
-      <div className='tick' style={{ left: '12%' }}></div>
-      <div className='tick' style={{ left: '24%' }}></div>
-      <div className='tick' style={{ left: '36%' }}></div>
-      <div className='tick' style={{ left: '48%' }}></div>
-      <div className='tick' style={{ left: '60%' }}></div>
-      <div className='tick' style={{ left: '72%' }}></div>
-      <div className='tick' style={{ left: '84%' }}></div>
-      <div className='tick' style={{ left: '96%' }}></div>
-      <div className='tick' style={{ left: '97%' }}></div>
-      <div className='tick' style={{ left: '98%' }}></div>
-      <div className='tick' style={{ left: '99%' }}></div>
+      <div className='tick' style={{ left: '12.5%' }}></div>
+      <div className='tick' style={{ left: '25%' }}></div>
+      <div className='tick' style={{ left: '37.5%' }}></div>
+      <div className='tick' style={{ left: '50%' }}></div>
+      <div className='tick' style={{ left: '62.5%' }}></div>
+      <div className='tick' style={{ left: '75%' }}></div>
+      <div className='tick' style={{ left: '87.5%' }}></div>
       {Object.keys(days).sort().reverse().map(
         key => <Day key={key}
                     yyyymmdd={key}
@@ -57,7 +53,7 @@ const Timeline = () => {
 }
 
 
-const pct = (begin, end) => `${100 * end.diff(begin) / end.diff(end.subtract(25, 'h'))}%`
+const pct = (begin, end) => `${100 * end.diff(begin) / end.diff(end.subtract(24, 'h'))}%`
 
 
 // Given a time in UTC, and some snapshots (from which we extract lat/lng), compute
