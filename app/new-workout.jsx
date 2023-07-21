@@ -39,49 +39,47 @@ const NewWorkout = () => {
 
   return (
     <div className='workout new container'>
-      <h1>
-        {goals.length > 0 ? <button className='start' onClick={startWorkout}>⏱️ Start!</button> : null}
-        <span>Workout Goals</span>
-      </h1>
+      <h2>New Workout</h2>
 
       <table className='goals'>
-        <thead><tr><td></td><th>Exercise</th><th>🪨 Resistance</th><th>🧮 Reps</th><th>📍️ Distance</th><th>⏲️ Duration</th><td></td></tr></thead>
-        <tbody>{goals.map((goal, idx) => (
-          <tr key={idx}>
-            <td key='move'>{shuffle ? null : '☷'}</td>
-            <td key='name'>{goal.name}</td>
-            <Cell key='difficulty'
-                  attr='difficulty'
-                  goal={goal}
-                  updateAll={updateAll}
-                  update={update(idx)} />
-            <Cell key='reps'
-                  attr='reps'
-                  goal={goal}
-                  parse={parseInt}
-                  updateAll={updateAll}
-                  update={update(idx)} />
-            <Cell key='distance_m'
-                  attr='distance_m'
-                  goal={goal}
-                  parse={parseInt}
-                  updateAll={updateAll}
-                  update={update(idx)} />
-            <Cell key='duration_s'
-                  attr='duration_s'
-                  goal={goal}
-                  format={value => value ? lib.formatDuration(value) : ''}
-                  parse={lib.parseDuration}
-                  updateAll={updateAll}
-                  update={update(idx)} />
-            <td key='remove'>
-              <button className='remove' onClick={() => setGoals(
-                        cur => [ ...cur.slice(0, idx), ...cur.slice(idx + 1) ])}>×</button>
-            </td>
-          </tr>))}
-        </tbody>
+        <thead><tr><td></td><th>🪨 Force</th><th>🧮 Reps</th><th>📍️ Distance</th><th>⏲️ Time</th></tr></thead>
+        {goals.map((goal, idx) => (
+          <tbody key={idx}>
+            <tr key='name'>
+              <td><button className='remove' onClick={() => setGoals(
+                            cur => [ ...cur.slice(0, idx), ...cur.slice(idx + 1) ])}>×</button></td>
+              <td colSpan='4'>{goal.name}</td>
+            </tr>
+            <tr key='targets'>
+              <td></td>
+              <Cell key='difficulty'
+                    attr='difficulty'
+                    goal={goal}
+                    updateAll={updateAll}
+                    update={update(idx)} />
+              <Cell key='reps'
+                    attr='reps'
+                    goal={goal}
+                    parse={parseInt}
+                    updateAll={updateAll}
+                    update={update(idx)} />
+              <Cell key='distance_m'
+                    attr='distance_m'
+                    goal={goal}
+                    parse={parseInt}
+                    updateAll={updateAll}
+                    update={update(idx)} />
+              <Cell key='duration_s'
+                    attr='duration_s'
+                    goal={goal}
+                    format={value => value ? lib.formatDuration(value) : ''}
+                    parse={lib.parseDuration}
+                    updateAll={updateAll}
+                    update={update(idx)} />
+            </tr>
+          </tbody>))}
         <tfoot>
-          <tr><td></td><td colSpan='5'>
+          <tr><td></td><td colSpan='4'>
             <Select
               key={goals.map(({ name }) => name).join('-')}
               placeholder='Add an exercise...'
@@ -111,15 +109,18 @@ const NewWorkout = () => {
             onClick={() => setShuffle(s => !s)}></span>
       <label htmlFor='shuffle'>Shuffle</label>
 
-      <h2>Copy from another workout...</h2>
-      <ul className='other-workouts'>{Object.entries(workouts).map(([name, exs]) => (
-        exs.length < 2 ? null : (
-          <li key={name}>
-            <button className='add' onClick={() => setGoals(cur => [...cur, ...exs.map(n => ({ name: n }))])}>+</button>
-            <span className='name'>{name}</span>
-            {exs.map(n => <span key={n} className='exercise'>{n}</span>)}
-          </li>
-      )))}</ul>
+      {goals.length ? <button className='start' onClick={startWorkout}>⏱️ Start!</button> : null}
+
+      {goals.length ? null : <h2>Copy from another workout...</h2>}
+      {goals.length ? null : (
+        <ul className='other-workouts'>{Object.entries(workouts).map(([name, exs]) => (
+          exs.length < 2 ? null : (
+            <li key={name}>
+              <button className='add' onClick={() => setGoals(cur => [...cur, ...exs.map(n => ({ name: n }))])}>+</button>
+              <span className='name'>{name}</span>
+              {exs.map(n => <span key={n} className='exercise'>{n}</span>)}
+            </li>
+          )))}</ul>)}
     </div>
   )
 }
@@ -135,7 +136,7 @@ const Cell = ({ goal, attr, format, parse, update, updateAll }) => {
            onBlur={e => { setIsEditing(false); update(attr, prs(e.target.value)) }}
            defaultValue={fmt(goal[attr])} />
   ) : (<>
-    <span onClick={() => setIsEditing(true)}>{fmt(goal[attr]) || '---'}</span>
+    <span onClick={() => setIsEditing(true)}>{fmt(goal[attr]) || '--'}</span>
     <button className='update-all' onClick={() => updateAll(attr, goal[attr])}>↕</button>
   </>)}</td>
 }

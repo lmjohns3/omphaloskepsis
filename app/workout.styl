@@ -72,13 +72,13 @@
     tbody
       tr:nth-child(odd) td
         background-color hsla(0, 0%, 50%, 0.3)
-        &:last-child
+        &:first-child
           background transparent
 
       tr.defaults td
         background hsl(0, 0%, 100%)
         color hsl(0, 0%, 70%)
-        &:last-child
+        &:first-child
           background transparent
 
     tfoot td
@@ -97,7 +97,10 @@
 
   #num-repeats
     margin-left 0.5em
-    width 3em
+
+  button.start
+    display block
+    margin-top 1em
 
   .other-workouts
     padding 0
