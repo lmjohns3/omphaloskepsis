@@ -1,13 +1,20 @@
 import dayjs from 'dayjs'
 dayjs.extend(require('dayjs/plugin/utc'))
 dayjs.extend(require('dayjs/plugin/timezone'))
+dayjs.extend(require('dayjs/plugin/localizedFormat'))
+dayjs.extend(require('dayjs/plugin/relativeTime'))
 
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useLoaderData, useNavigate } from 'react-router-dom'
 import showdown from 'showdown'
 
-import { apiRead, apiUpdate, apiDelete } from './api.jsx'
-import { Dial, Meter, Mood } from './common.jsx'
+showdown.setOption('simplifiedAutoLink', true)
+showdown.setOption('excludeTrailingPunctuationFromURLs', true)
+showdown.setOption('literalMidWordUnderscores', true)
+showdown.setOption('literalMidWordAsterisks', true)
+
+import { apiUpdate, apiDelete } from './api.jsx'
+import { Dial, Meter } from './common.jsx'
 import { Map, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
 
@@ -15,13 +22,6 @@ import './snapshot.styl'
 
 
 const Snapshot = () => {
-  useEffect(() => {
-    showdown.setOption('simplifiedAutoLink', true)
-    showdown.setOption('excludeTrailingPunctuationFromURLs', true)
-    showdown.setOption('literalMidWordUnderscores', true)
-    showdown.setOption('literalMidWordAsterisks', true)
-  }, [])
-
   const navigate = useNavigate()
   const snapshot = useLoaderData()
   const [fields, setFields] = useState(snapshot.kv)
@@ -35,21 +35,15 @@ const Snapshot = () => {
 
   return (
     <div className='snapshot container'>
-      <div className='when'>
-        {['H:mm a', 'dddd', 'M', 'MMMM', 'D', 'YYYY'].map(
-          fmt => <span className={fmt.replace(/\W+/g, '-')}>{when.format(fmt)}</span>
-        )}
-      </div>
+      <h1>{when.format('llll')}</h1>
 
+      <div className='where'>
       {snapshot.lat && snapshot.lng
        ? <Map lat={snapshot.lat} lng={snapshot.lng} onChanged={value => updateLatLng(value)} />
-       : <button onClick={() => useGeo().then(
-                   geo => updateLatLng([geo.coords.latitude, geo.coords.longitude])
-                 )}>📍️</button>}
-
+       : <button onClick={() => useGeo().then(geo => updateLatLng([geo.coords.latitude, geo.coords.longitude]))}>📍️</button>}
+      </div>
 
       <div>
-        <h2>Mood</h2>
         <Mood value={fields.mood} update={updateField('mood')} />
         <div className='feels'>
           <Dial icon='😄' label='Joy' value={fields.joy} update={updateField('joy')} />
@@ -59,35 +53,34 @@ const Snapshot = () => {
         </div>
       </div>
 
-      <Meter update={updateField('height_cm')} value={fields.height_cm}
-             emoji='📏' label='Height' formats={{ 'in': 0.3937, 'cm': null }} />
-      <Meter update={updateField('weight_kg')} value={fields.weight_kg}
-             emoji='⚖️' label='Weight' formats={{ 'lb': 2.20462, 'st': 0.15747, 'kg': null }} />
-      <Meter update={updateField('body_temp_degc')} value={fields.body_temp_degc}
-             emoji='🌡️' label='Temp' formats={{ '°C': null, '°F': [
-               degc => degc * 1.8 + 32, degf => (degf - 32) / 1.8 ] }} />
-      <Meter update={updateField('heart_rate_bpm')} value={fields.heart_rate_bpm}
-             emoji='💗️' label='Pulse' formats={{ 'bpm': null, 'Hz': 1 / 60 }} />
-      <Meter update={updateField('blood_pressure_mmhg')} value={fields.blood_pressure_mmhg}
-             emoji='🫀️' label='Blood Pressure' formats={{ 'mmHg': null }} />
-      <Meter update={updateField('blood_oxygen_spo2_pct')} value={fields.blood_oxygen_spo2_pct}
-             emoji='🩸' label='Blood Oxygen' formats={{ '%': null }} />
-      <Meter update={updateField('vo2_max_ml_kg_min')} value={fields.vo2_max_ml_kg_min}
-             emoji='🫁' label='VO2 max' formats={{ 'mL/(kg·min)': null }} />
-      <Meter update={updateField('lactate_mmol_l')} value={fields.lactate_mmol_l}
-             emoji='💪' label='Lactate' formats={{ 'mmol/L': null }} />
-      <Meter update={updateField('glucose_mmol_l')} value={fields.glucose_mmol_l}
-             emoji='🍭' label='Glucose' formats={{ 'mmol/L': null }} />
-
-      <div className='note'>
-        <h2>Note</h2>
-        <Text value={snapshot.note || ''} update={value => updateNote(value)} />
+      <div className='meter-container'>
+        <Meter update={updateField('height_cm')} value={fields.height_cm}
+               emoji='📏' label='Height' formats={{ 'in': 0.3937, 'cm': null }} />
+        <Meter update={updateField('weight_kg')} value={fields.weight_kg}
+               emoji='⚖️' label='Weight' formats={{ 'lb': 2.20462, 'st': 0.15747, 'kg': null }} />
+        <Meter update={updateField('body_temp_degc')} value={fields.body_temp_degc}
+               emoji='🌡️' label='Temp' formats={{ '°C': null, '°F': [
+                 degc => degc * 1.8 + 32, degf => (degf - 32) / 1.8 ] }} />
+        <Meter update={updateField('heart_rate_bpm')} value={fields.heart_rate_bpm}
+               emoji='💗️' label='Pulse' formats={{ 'bpm': null, 'Hz': 1 / 60 }} />
+        <Meter update={updateField('blood_pressure_mmhg')} value={fields.blood_pressure_mmhg}
+               emoji='🫀️' label='Blood Pressure' formats={{ 'mmHg': null }} />
+        <Meter update={updateField('blood_oxygen_spo2_pct')} value={fields.blood_oxygen_spo2_pct}
+               emoji='🩸' label='Blood Oxygen' formats={{ '%': null }} />
+        <Meter update={updateField('vo2_max_ml_kg_min')} value={fields.vo2_max_ml_kg_min}
+               emoji='🫁' label='VO2 max' formats={{ 'mL/(kg·min)': null }} />
+        <Meter update={updateField('lactate_mmol_l')} value={fields.lactate_mmol_l}
+               emoji='💪' label='Lactate' formats={{ 'mmol/L': null }} />
+        <Meter update={updateField('glucose_mmol_l')} value={fields.glucose_mmol_l}
+               emoji='🍭' label='Glucose' formats={{ 'mmol/L': null }} />
       </div>
 
-      <button className='delete' onClick={() => {
-                if (confirm('Really delete?')) {
+      <Text value={snapshot.note || ''} update={updateNote} />
+
+      <button className='delete'
+              onClick={() => {
+                if (confirm('Really delete?'))
                   apiDelete(`snapshot/${snapshot.id}`).then(() => navigate(-1))
-                }
               }}>🗑️ Delete</button>
     </div>
   )
@@ -105,6 +98,25 @@ const Text = ({ value, update }) => {
          dangerouslySetInnerHTML={{
            __html: new showdown.Converter().makeHtml(value || 'Click to edit!')
          }} />
+  )
+}
+
+
+const Mood = ({ value, update }) => {
+  const frac = (1 + (value ?? 0)) / 2
+  const faces = ['☹️', '🙁', '😐', '🙂', '😊']
+  return (
+    <div className='mood' onClick={e => {
+           const { width } = e.target.getBoundingClientRect()
+           if (width < 100) return
+           const x = e.nativeEvent.offsetX
+           console.log(width, x, x / width, 2 * x / width - 1)
+           update(Math.max(-1, Math.min(1, 2 * x / width - 1)))
+         }}>
+      <span className='marker' style={{ left: `${Math.round(100 * frac)}%` }}>
+        {faces[Math.round(frac * (faces.length - 1))]}
+      </span>
+    </div>
   )
 }
 

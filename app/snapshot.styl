@@ -1,10 +1,11 @@
 .snapshot
-  display grid
-  gap 0.5em
-  grid-template-columns repeat(auto-fill, minmax(min(100%, 20em), 1fr))
+  .where
+    aspect-ratio 16 / 9
+    max-width 30em
+    min-width 10em
 
   .rendered
-    min-height 30vh
+    height 100%
 
     &:hover
       background-color hsla(0, 0%, 50%, 0.1)
@@ -12,58 +13,27 @@
       margin-bottom 0
 
 .mood
+  background linear-gradient(90deg,
+                             var(--coolwarm-m3),
+                             var(--coolwarm-m2),
+                             var(--coolwarm-m1),
+                             var(--coolwarm-0),
+                             var(--coolwarm-p1),
+                             var(--coolwarm-p2),
+                             var(--coolwarm-p3))
   cursor pointer
-  height 1.5rem
-  margin 0.5rem 0 1rem
+  height 0.5em
+  margin 1em 0
   position relative
 
-  .bar
-    background linear-gradient(90,
-                               var(--coolwarm-m3),
-                               var(--coolwarm-m2),
-                               var(--coolwarm-m1),
-                               var(--coolwarm-0),
-                               var(--coolwarm-p1),
-                               var(--coolwarm-p2),
-                               var(--coolwarm-p3))
-    display block
-    height 1rem
-    left 1rem
-    opacity 0.5
-    position absolute
-    bottom 0
-    right 1rem
-    z-index 1
-
   .marker
-    bottom -1px
-    font-size 1.5rem
+    font-size 1.5em
     line-height 1
+    margin-left -0.6em
     position absolute
-    width 2rem
-    z-index 2
-
-  .lo
-    left 0
-  .cur
-    margin-left -1rem
     text-align center
-  .hi
-    right 0
-    text-align right
-
-.when
-  span
-    display inline-block
-    margin 0.2em 0 0 0.2em
-
-  .H-mm-a
-    display block
-    font-size larger
-  .dddd
-    display block
-  .M
-    display none
+    top -0.25em
+    width 0.2em
 
 .feels
   align-items center

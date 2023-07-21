@@ -71,8 +71,8 @@ const Meter = ({ value, label, emoji, formats, update }) => {
   const storedValue = value
   const displayedValue = convertToDisplay(storedValue)
 
-  return (value === null || value === undefined) ? null : (
-    <div className='meter'>
+  return (
+    <div className={`meter ${(value === null || value === undefined) ? 'null' : ''}`} title={label}>
       {!emoji ? null : <span className='emoji'>{emoji}</span>}
       <span className='label'>{label}</span>
       <span className={`value ${update ? 'can-edit' : ''}`}
@@ -93,22 +93,6 @@ const Meter = ({ value, label, emoji, formats, update }) => {
               localStorage.setItem(unitStorageKey, next)
               return next
             })}>{unit}</span>
-    </div>
-  )
-}
-
-
-const Mood = ({ value, update }) => {
-  return (
-    <div className='mood'>
-      <span className='bar' onClick={e => {
-              const { width } = e.target.getBoundingClientRect()
-              const x = e.nativeEvent.offsetX
-              update(Math.max(-1.0, Math.min(1.0, 2 * x / width - 1)))
-            }}></span>
-      {value ? <span className='marker cur' style={{ left: `${Math.round(50 * (1 + value))}%` }}>📍</span> : null}
-      <span className='marker lo'>😞</span>
-      <span className='marker hi'>😊</span>
     </div>
   )
 }
@@ -156,6 +140,5 @@ const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700
 export {
   Dial,
   Meter,
-  Mood,
   useLongPress,
 }
