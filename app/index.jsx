@@ -15,11 +15,11 @@ import {
 
 //import eruda from 'eruda'
 
-import { apiCreate, apiRead, apiUpdate } from './api.jsx'
+import { apiRead, apiUpdate } from './api.jsx'
 import { Account } from './account.jsx'
 import { AuthProvider, AuthRequired, useAuth } from './auth.jsx'
 import { Collection } from './collection.jsx'
-import { Mood } from './common.jsx'
+import { Dashboard } from './dashboard.jsx'
 import { Habits } from './habits.jsx'
 import { Login } from './login.jsx'
 import { NewWorkout } from './new-workout.jsx'
@@ -37,9 +37,6 @@ const Splash = () => (
     <p><Link to='/login/'>Log In</Link></p>
   </div>
 )
-
-
-const Dashboard = () => <div className='dashboard container'><h1>Welcome.</h1></div>
 
 
 const Error = err => (
@@ -61,19 +58,9 @@ const App = () => {
   const nav = token ? (
     <ul>
       <li><NavLink title='Dashboard' to='/'>👁️️</NavLink></li>
-      <li><NavLink title='Timeline' to='/timeline/'>📅️</NavLink></li>
+      <li><NavLink title='Hourly' to='/timeline/'>📅️</NavLink></li>
+      <li><NavLink title='Daily' to='/calendar/'>🗓️️</NavLink></li>
       <li><NavLink title='Habits' to='/habits/'>☑️</NavLink></li>
-      <li className='sep'></li>
-      <li><Link title='New Snapshot' onClick={e => {
-                  e.preventDefault()
-                  apiCreate('snapshots').then(res => redirect(`/snapshot/${res.id}/`))
-                }}>📷️</Link>️</li>
-      <li><Link title='Start Sleeping' onClick={e => {
-                  e.preventDefault()
-                  apiCreate('snapshots', { flavor: 'sleep' })
-                    .then(res => redirect(`/snapshot/${res.id}/`))
-                }}>💤</Link></li>
-      <li><Link title='New Workout' to='/workout/new/'>🏋️</Link></li>
       <li className='sep'></li>
       <li><NavLink title='Settings' to='/account/'>⚙️</NavLink></li>
       <li><Link title='Log Out' onClick={clearToken}>🚪</Link></li>
@@ -96,6 +83,7 @@ ReactDOM.createRoot(
       children: [
         {
           index: true,
+          loader: () => apiRead('dashboard').catch(() => null),
           element: <Index />,
         },
         {

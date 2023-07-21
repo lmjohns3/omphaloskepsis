@@ -76,7 +76,10 @@ def _check_csrf():
 @app.route('/api/dashboard/', methods=['GET'])
 def get_dashboard():
     req = flask.request
-    result = {}
+    snapshots = sqlalchemy.select(Snapshot).order_by(Snapshot.utc.desc()).limit(3)
+    result = dict(
+        snapshots=[s.to_dict() for s in req.acct.session.scalars(snapshots)],
+    )
     return flask.jsonify(result)
 
 

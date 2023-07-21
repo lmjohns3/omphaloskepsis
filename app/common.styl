@@ -108,7 +108,7 @@ button
 
 .leaflet-container
   width 100%
-  height 10rem
+  height 100%
 
   .leaflet-control-attribution
     font-family 'Fira Sans Condensed', sans-serif
@@ -158,11 +158,12 @@ button
 
 .meter
   display flex
+  grid-column span 4
 
   span
     flex 0 0 auto
   .label
-    flex 1 0 3em
+    flex 0 0 auto
   .emoji
     flex 0 0 1.5em
 
@@ -185,18 +186,28 @@ button
         color hsl(300, 70%, 30%)
         content '⟳ '
 
+  &.null
+    display inline-block
+    margin 0.2em
+    opacity 0.5
+
+    .unit
+    .label
+    .value
+      display none
+
 .dial
   align-items center
   display flex
   flex-flow column
-  height 4.5rem
+  height 4.5em
   justify-content flex-end
-  margin-right 0.5rem
+  margin-right 0.5em
   position relative
-  width 4.5rem
+  width 4.5em
 
   .icon, .value
-    font-size 1.5rem
+    font-size 1.5em
     line-height 1
     z-index 3
 
@@ -206,11 +217,11 @@ button
   .arc
     cursor pointer
     display block
-    height 4.5rem
+    height 4.5em
     left 0
     position absolute
     top 0
-    width 4.5rem
+    width 4.5em
     clip-path polygon(
       6.69742% 74.9977%, 5.68863% 73.1625%, 4.75758% 71.2867%, 3.90589% 69.3735%, 3.13506% 67.4263%, 2.44645% 65.4486%, 1.84125% 63.4438%, 1.32054% 61.4154%,
       0.885225% 59.3669%, 0.53607% 57.302%, 0.273686% 55.2243%, 0.0985354% 53.1375%, 0.0109242% 51.0451%, 0.0110064% 48.9509%, 0.098782% 46.8586%, 0.274097% 44.7718%,
