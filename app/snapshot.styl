@@ -1,8 +1,15 @@
 .snapshot
-  .where
-    aspect-ratio 16 / 9
-    max-width 30em
-    min-width 10em
+  display grid
+  grid-template-columns auto 1fr
+  gap 0.5em
+  padding 0.5em
+  width 100%
+
+  *
+    grid-column 2
+
+  .tab
+    grid-column 1
 
   .rendered
     height 100%
@@ -11,6 +18,15 @@
       background-color hsla(0, 0%, 50%, 0.1)
     p
       margin-bottom 0
+
+.leaflet-container
+  aspect-ratio 4
+  min-height 6em
+  width 100%
+
+  .leaflet-control-attribution
+    font-family 'Fira Sans Condensed', sans-serif
+    font-size 0.5em
 
 .mood
   background linear-gradient(90deg,
@@ -27,18 +43,19 @@
   position relative
 
   .marker
-    font-size 1.5em
+    font-size 2em
     line-height 1
     margin-left -0.6em
     position absolute
     text-align center
-    top -0.25em
+    top -0.3em
     width 0.2em
 
 .feels
   align-items center
   display flex
-  flex-flow row
+  display none
+  flex-flow row wrap
   justify-content space-evenly
 
   .dial .arc
