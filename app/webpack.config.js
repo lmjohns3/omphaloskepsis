@@ -45,5 +45,9 @@ module.exports = {
       //filename: 'app.[hash].css',
     }),
     //new webpack.HotModuleReplacementPlugin(),
+    //new webpack.optimize.SplitChunksPlugin(),
+    //new webpack.optimize.DedupePlugin(),
+    //new webpack.optimize.UglifyJsPlugin(),
+    //new webpack.optimize.AggressiveMergingPlugin(),
   ],
 }
