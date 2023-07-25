@@ -1,7 +1,7 @@
 import './color.styl'
 import './common.styl'
 
-import React, { StrictMode, useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import {
   createBrowserRouter,
@@ -14,6 +14,7 @@ import {
 } from 'react-router-dom'
 
 //import eruda from 'eruda'
+//eruda.init()
 
 import { apiRead, apiUpdate } from './api.jsx'
 import { Account } from './account.jsx'
@@ -33,7 +34,11 @@ import './index.styl'
 const Splash = () => (
   <div className='splash'>
     <h1 id='omphaloskepsis' title='Omphaloskepsis (navel gazing)'>ὀμφᾰλοσκέψῐς</h1>
-    <p>👁️ navel gazing for 🏋️ physical and 🧘 mental health</p>
+    <p>
+      <span>👁️ navel gazing for</span>
+      <span>🏋️ physical and</span>
+      <span>🧘 mental health</span>
+    </p>
     <p><Link to='/login/'>Log In</Link></p>
   </div>
 )
@@ -53,10 +58,8 @@ const Index = () => useAuth().token ? <Dashboard /> : <Splash />
 const App = () => {
   const { token, clearToken } = useAuth()
 
-  //useEffect(() => { eruda.init() }, [])
-
   const nav = token ? (
-    <ul>
+    <nav><ul>
       <li><NavLink title='Dashboard' to='/'>👁️️</NavLink></li>
       <li><NavLink title='Hourly' to='/timeline/'>📅️</NavLink></li>
       <li><NavLink title='Daily' to='/calendar/'>🗓️️</NavLink></li>
@@ -64,10 +67,10 @@ const App = () => {
       <li className='sep'></li>
       <li><NavLink title='Settings' to='/account/'>⚙️</NavLink></li>
       <li><Link title='Log Out' onClick={clearToken}>🚪</Link></li>
-    </ul>
+    </ul></nav>
   ) : null
 
-  return <><nav>{nav}</nav><Outlet /></>
+  return <>{nav}<Outlet /></>
 }
 
 
