@@ -21,12 +21,16 @@ const AuthProvider = ({ children }) => {
   const clearToken = () => apiUpdate('logout').then(res => {
     document.getElementById('csrf').setAttribute('token', res.csrf)
     setToken(null)
-    navigate('/')
+    navigate(0)
   })
 
   if (!token && fetched) handleToken(fetched)
 
-  return <AuthContext.Provider value={{ token, handleToken, clearToken }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ token, handleToken, clearToken }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 
