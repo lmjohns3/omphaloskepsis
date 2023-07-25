@@ -30,7 +30,8 @@ const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
     watercolor: ('Map tiles by <a href="http://stamen.com">Stamen Design</a>, ' +
                  '<a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> — ' +
                  'Map data © <a href="http://osm.org/copyright">OpenStreetMap</a>')
-  }; const urls = {
+  }
+  const urls = {
     imagery: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     terrain: 'http://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png',
@@ -38,12 +39,15 @@ const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
     watercolor: 'https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png'
   }
   return (
-    <MapContainer center={[lat, lng]}
-             zoom={zoom || 10}
-             onViewportChanged={onChanged ? vp => onChanged(vp.center) : null}>
-      <TileLayer url={urls[tiles || 'imagery']}
-                 attribution={attributions[tiles || 'imagery']} />
-    </MapContainer>
+    <div className='map'>
+      <span className='emoji'>🗺️️ </span>
+      <MapContainer center={[lat, lng]}
+                    zoom={zoom || 10}
+                    onViewportChanged={onChanged ? vp => onChanged(vp.center) : null}>
+        <TileLayer url={urls[tiles || 'imagery']}
+                   attribution={attributions[tiles || 'imagery']} />
+      </MapContainer>
+    </div>
   )
   // {false ? <Marker position={[lat, lng]}><Popup>Here!</Popup></Marker> : null}
 }
