@@ -131,22 +131,16 @@ export default {
     return dwt.waverec(tree, 'haar').slice(0, n)
   },
 
-  formatDuration: s => s > 0 ? (
-    dayjs
-      .duration(parseInt(1000 * s))
-      .toISOString()
-      .replace(/[PT]/g, '')
-      .toLowerCase()
-      .replace(/\s+$/, '')
-      .split(/ /)
-      .slice(0, 2)
-      .join(' ')
-      .replace(/\.\d+s$/, 's')) : '--',
+  formatDuration: s => !(s > 0) ? '--' : (dayjs
+                                          .duration(parseInt(1000 * s))
+                                          .toISOString()
+                                          .replace(/[PT]/g, '')
+                                          .toLowerCase()
+                                          .replace(/\s+$/, '')
+                                          .replace(/\.\d+s$/, 's')),
 
   parseDuration: s => dayjs.duration(
-    /^\d+$/.test(s)
-      ? `PT${s}S`
-      : `PT${s.replace(/\s+/g, '').toUpperCase()}`
+    /^\d+$/.test(s) ? `PT${s}S` : `PT${s.replace(/\s+/g, '').toUpperCase()}`
   ).as('s'),
 
   shuffle: arr => {
