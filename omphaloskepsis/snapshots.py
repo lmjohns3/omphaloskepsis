@@ -34,7 +34,11 @@ class Collection(Model):
 class Snapshot(Model):
     __tablename__ = 'snapshots'
 
-    STRINGS = frozenset()
+    STRINGS = frozenset((
+        'gps_lats', 'gps_lngs', 'gps_alts', 'gps_times',
+        'rr_intervals',
+        'step_intervals',
+    ))
 
     id = db.Column(db.Integer, primary_key=True)
 
