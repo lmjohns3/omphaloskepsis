@@ -80,13 +80,13 @@ ReactDOM.createRoot(
   <RouterProvider
     router={createBrowserRouter([{
       path: '/',
-      loader: () => apiUpdate('token').catch(() => null),
+      loader: () => apiUpdate('token'),
       element: <AuthProvider><App /></AuthProvider>,
       //errorElement: <Error />,
       children: [
         {
           index: true,
-          loader: () => apiRead('dashboard').catch(() => null),
+          loader: () => apiRead('dashboard'),
           element: <Index />,
         },
         {

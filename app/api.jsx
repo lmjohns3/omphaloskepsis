@@ -18,8 +18,9 @@ const api = path => `/api/${path}/`
 const fetchJson = (url, args, timeoutSec = 10) => fetch(
   url, { ...args, signal: AbortSignal.timeout(1000 * timeoutSec) }
 ).then(res => {
-  if (res.ok) return res.json()
-  throw new Error(JSON.stringify({ url: url, status: res.status }))
+  if (res.status < 300) return res.json()
+  if (res.status < 500) return null
+  throw new Error(JSON.stringify({ url, res }))
 })
 
 
