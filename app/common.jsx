@@ -45,47 +45,71 @@ const Dial = ({ icon, label, value, update }) => {
 }
 
 
-const Meter = ({ value, label, emoji, formats, update }) => {
-  const [editing, setEditing] = useState(false)
+const METRICS = {
+  exercise: [
+    { emoji: '🧮', label: 'Reps', attr: 'reps' },
+    { emoji: '🪨', label: 'Resistance', attr: 'resistance_n', formats: { N: null, lb: 0.2248, kg: 0.102 } },
+    { emoji: '⏱️', label: 'Duration', attr: 'duration_s', formats: { '': [lib.formatDuration, lib.parseDuration] } },
+    { emoji: '📍', label: 'Distance', attr: 'distance_m', formats: { m: null, km: 0.001, mi: 0.0062137 } },
+    { emoji: '🚲', label: 'Cadence', attr: 'cadence_hz', formats: { Hz: null, rpm: 60 } },
+    { emoji: '⚡', label: 'Average Power', attr: 'avg_power_w', formats: { W: null, hp: 0.00134102 } },
+  ],
+  vitals: [
+    { emoji: '📏', label: 'Height', attr: 'height_cm', formats: { 'in': 0.3937, 'cm': null } },
+    { emoji: '⚖️',  label: 'Weight', attr: 'weight_kg', formats: { 'lb': 2.20462, 'st': 0.15747, 'kg': null } },
+    { emoji: '🌡️',  label: 'Body Temperature', attr: 'body_temp_degc', formats: {
+      '°C': null, '°F': [degc => degc * 1.8 + 32, degf => (degf - 32) / 1.8] } },
+    { emoji: '💗️', label: 'Heart Rate', attr: 'heart_rate_bpm', formats: { 'bpm': null, 'Hz': 1 / 60 } },
+    { emoji: '🫀️', label: 'Blood Pressure', attr: 'blood_pressure_mmhg', formats: { 'mmHg': null } },
+    { emoji: '🩸', label: 'Blood Oxygen', attr: 'oxygen_spo2_pct', formats: { '%': null } },
+    { emoji: '🍭', label: 'Glucose', attr: 'glucose_mmol_l', formats: { 'mmol/L': null } },
+    { emoji: '🫁', label: 'VO2 Max', attr: 'vo2_max_ml_kg_min', formats: { 'mL/(kg·min)': null } },
+    { emoji: '💪', label: 'Lactate', attr: 'lactate_mmol_l', formats: { 'mmol/L': null } },
+  ],
+}
+
+
+const Meter = ({ value, label, emoji, formats, onChange }) => {
+  const [editing, setEditing] = useState(onChange && !value)
 
   if (!formats) formats = { '': null }
 
   const units = Object.keys(formats)
-  const unitStorageKey = `omphalos-unit-${units.join('_')}`
-  const [unit, setUnit] = useState(localStorage.getItem(unitStorageKey))
-
-  useEffect(() => {
-    if (units.indexOf(unit) < 0) setUnit(units.find(u => formats[u] === null))
-  }, [unit, units])
+  const unitStorageKey = `omphalos-unit-${label}`
+  const [unit, setUnit] = useState(localStorage.getItem(unitStorageKey) ?? units[0])
 
   const convertToDisplay = v => {
-    const factor = formats[unit]
-    return !factor ? v : factor.length ? factor[0](v) : v * factor
+    const f = formats[unit]
+    if (Number.isFinite(f)) return v * f
+    if (f instanceof Array) return f[0](v)
+    return v
   }
 
   const convertFromDisplay = v => {
-    const factor = formats[unit]
-    return !factor ? v : factor.length ? factor[1](v) : v / factor
+    const f = formats[unit]
+    if (Number.isFinite(f)) return v / f
+    if (f instanceof Array) return f[1](v)
+    return v
   }
 
-  const storedValue = value
-  const displayedValue = convertToDisplay(storedValue)
+  const displayed = convertToDisplay(value)
 
-  return (
-    <div className={`meter ${(value === null || value === undefined) ? 'null' : ''}`} title={label}>
-      {!emoji ? null : <span className='emoji'>{emoji}</span>}
-      <span className='label'>{label}</span>
-      <span className={`value ${update ? 'can-edit' : ''}`}
-            onClick={update ? () => setEditing(true) : null}>
+  return (value === null || value === undefined) ? null : (
+    <div className='meter' title={label}>
+      <span className='emoji'>{emoji ?? ''}</span>
+      {label ? <span className='label'>{label}</span> : null}
+      <span className={`value ${onChange ? 'can-edit' : ''}`}
+            onClick={onChange ? () => setEditing(true) : null}>
         {editing ? <input type='text'
-                          defaultValue={displayedValue}
+                          defaultValue={displayed}
                           autoFocus
                           onFocus={e => e.target.select()}
                           onBlur={e => {
                             setEditing(false)
-                            update(+convertFromDisplay(e.target.value))
+                            onChange(+convertFromDisplay(e.target.value))
                           }} /> :
-         storedValue ? lib.roundTenths(displayedValue) : '---'}
+         Math.round(displayed) === displayed ? Math.round(displayed) :
+         lib.roundTenths(displayed)}
       </span>
       <span className={`unit options-${units.length}`} onClick={() => setUnit(u => {
               const i = units.indexOf(u)
@@ -140,5 +164,6 @@ const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700
 export {
   Dial,
   Meter,
+  METRICS,
   useLongPress,
 }

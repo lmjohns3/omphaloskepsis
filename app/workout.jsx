@@ -11,7 +11,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useLoaderData } from 'react-router-dom'
 
 import { apiCreate } from './api.jsx'
-import { Meter } from './common.jsx'
+import { Meter, METRICS } from './common.jsx'
 import { geoToUtmConverter, getUtmZone, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
 
@@ -36,47 +36,37 @@ const Workout = () => {
   const [snapshots, setSnapshots] = useState(initialSnapshots)
 
   const goals = JSON.parse(collection.kv.goals)
+  const totalReps = lib.sum(snapshots.map(s => s.kv.reps ?? 0))
+  const totalDuration = lib.sum(snapshots.map(s => s.kv.duration_s ?? 0))
 
   return (
-    <div className='workout container'>
-      {snapshots.length < goals.length ?
-       <ActiveSet key={snapshots.length}
-                  collection_id={collection.id}
-                  goal={goals[snapshots.length]}
-                  refresh={res => setSnapshots(s => [...s, res])} /> : null}
+    <div key={collection.id} className='workout'>
+       {snapshots.length < goals.length
+       ? <ActiveSet key={snapshots.length}
+                    goal={goals[snapshots.length]}
+                    refresh={res => setSnapshots(s => [...s, res])} />
+       : <div className='summary container'>
+           {totalReps ? <span className='reps'><span className='value'>{totalReps}</span> reps</span> : null}
+           <span className='sets'><span className='value'>{snapshots.length}</span> sets</span>
+           <span className='duration'><span className='value'>{lib.formatDuration(totalDuration)}</span></span>
+         </div>}
+      <h3>{'▪'.repeat(snapshots.length)}{'▫'.repeat(goals.length - snapshots.length)}</h3>
       {snapshots.reverse().map((s, i) =>
-        <CompletedSet key={s.id} utc={s.utc} data={s.kv} goal={goals[i]} />
+        <div key={s.id} className='completed-set'>
+          <h2 className='exercise-name'>{goals[i].name}</h2>
+          {METRICS.exercise.map(m => m.attr in s.kv ? <Meter key={m.attr} value={s.kv[m.attr]} {...m} /> : null)}
+        </div>
       )}
     </div>
   )
 }
 
 
-const CompletedSet = ({ utc, data, goal }) => (
-  <div className='completed-set'>
-    <h2 className='name'>{goal.name}</h2>
-    <span className='finished'>{dayjs.unix(utc).add(data.duration_s, 's').fromNow()}</span>
-    <div className='metrics'>
-      <Meter value={lib.formatDuration(data.duration_s)} label='Duration' emoji='⏱️' />
-      {data.reps ? <Meter value={data.reps} attr='reps' label='Reps' emoji='🧮' /> : null}
-      {data.resistance_n ? <Meter value={data.resistance_n} attr='resistance_n' label='Resistance'
-                                  emoji='🪨' formats={{ N: null, lb: 0.2248, kg: 0.102 }} /> : null}
-      {data.distance_m ? <Meter value={data.distance_m} attr='distance_m' label='Distance'
-                                emoji='📍' formats={{ m: null, km: 0.001, mi: 0.0062137 }} /> : null}
-      {data.cadence_hz ? <Meter value={data.cadence_hz} attr='cadence_hz' label='Cadence'
-                                emoji='🚲' formats={{ Hz: null, rpm: 60 }} /> : null}
-      {data.avg_power_w ? <Meter value={data.avg_power_w} attr='avg_power_w' label='Average Power'
-                                 emoji='⚡' formats={{ W: null, hp: 0.00134102 }} /> : null}
-    </div>
-  </div>
-)
-
-
 const ActiveSet = ({ goal, refresh }) => {
   const { collection } = useLoaderData()
 
   const [utc, setUtc] = useState(0)
-  const [data, setData] = useState({})
+  const [fields, setFields] = useState({})
   const [nosleep, setNosleep] = useState(false)
   const awake = useNoSleep(nosleep)
 
@@ -88,34 +78,36 @@ const ActiveSet = ({ goal, refresh }) => {
 
   const finish = () => {
     setNosleep(false)
-    setData(d => ({ ...d, duration_s: dayjs.utc().unix() - utc}))
+    setFields(d => ({ ...d, duration_s: dayjs.utc().unix() - utc}))
   }
 
-  const update = attr => value => setData(d => ({ ...d, [attr]: value }))
+  const update = attr => value => setFields(d => ({ ...d, [attr]: value }))
 
   const commit = () => {
     if (stepTimes.length) {
-      data['step_count'] = stepTimes.length
-      data['step_intervals'] = lib.waveletEncode(lib.diff(stepTimes))
+      fields['step_count'] = stepTimes.length
+      fields['step_intervals'] = lib.waveletEncode(lib.diff(stepTimes))
     }
     if (geoMeasurements.length) {
-      data['gps_count'] = geoMeasurements.length
-      data['gps_lats'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.latitude))
-      data['gps_lngs'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.longitude))
-      data['gps_alts'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.altitude))
-      data['gps_times'] = lib.waveletEncode(geoMeasurements.map(g => g.timestamp))
+      fields['gps_count'] = geoMeasurements.length
+      fields['gps_lats'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.latitude))
+      fields['gps_lngs'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.longitude))
+      fields['gps_alts'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.altitude))
+      fields['gps_times'] = lib.waveletEncode(geoMeasurements.map(g => g.timestamp))
     }
     if (heartRateMeasurements.length) {
       const rrs = []
       heartRateMeasurements.forEach(hr => rrs.push(...hr.rrs))
-      data['rr_count'] = rrs.length
-      data['rr_intervals'] = lib.waveletEncode(rrs)
+      fields['rr_count'] = rrs.length
+      fields['rr_intervals'] = lib.waveletEncode(rrs)
     }
-    apiCreate('snapshots', { utc: utc, collection_id: collection.id, ...data }).then(refresh)
+    apiCreate('snapshots', { utc: utc, collection_id: collection.id, ...fields }).then(refresh)
   }
 
   return (
     <div className='active-set'>
+      <h2 className='exercise-name'>{goal.name}</h2>
+
       {navigator.bluetooth &&
        <HeartRateMonitor
          heartRate={heartRateMeasurements.length && heartRateMeasurements.slice(-1)[0].heartRate}
@@ -127,31 +119,26 @@ const ActiveSet = ({ goal, refresh }) => {
          increment={() => setStepTimes(c => [...c, dayjs.utc().unix()])}
          clear={() => setStepTimes([])}
          sampleFrequencyHz={31} />}
-      {navigator.geolocation &&
+      {navigator.geolocation && (goal.distance_m ?? 0) ?
        <PathTracker
          recent={geoMeasurements.length && geoMeasurements.slice(-1)[0]}
          distance={geoMeasurements.reduce(sumDistance, { acc: 0 }).acc}
          addMeasurement={m => setGeoMeasurements(c => [...c, m])}
          clear={() => setGeoMeasurements([])}
-         samplePeriodSec={60} />}
+         samplePeriodSec={60} /> : null}
 
-      <h1 className='name'>
-        {utc ? null : <button className='start' onClick={start}>⏱️ Start!</button>}
-        {goal.name}
-      </h1>
-
-      {data.duration_s ? (
+      {fields.duration_s ? (
         <div className='finalize'>
-          <Meter value={lib.formatDuration(data.duration_s)} label='Duration' emoji='⏲️' />
-          <Meter value={data.reps || goal.reps} label='Reps' emoji='🧮' update={update('reps')} />
-          <Meter value={data.resistance_n || goal.resistance_n} label='Resistance' update={update('resistance_n')}
-                 emoji='🪨' formats={{ N: null, lb: 0.2248, kg: 0.102 }} />
-          <Meter value={data.distance_m || goal.distance_m} label='Distance' update={update('distance_m')}
-                 emoji='📍' formats={{ m: null, km: 0.001, mi: 0.0062137 }} />
-          <Meter value={data.cadence_hz || goal.cadence_hz} label='Cadence' update={update('cadence_hz')}
-                 emoji='🚲' formats={{ Hz: null, rpm: 60 }} />
-          <Meter value={data.avg_power_w || goal.avg_power_w} label='Average Power' update={update('avg_power_w')}
-                 emoji='⚡' formats={{ W: null, hp: 0.00134102 }} />
+          {METRICS.exercise.map(m => m.attr in fields ? <Meter key={m.attr}
+                                                               value={fields[m.attr]}
+                                                               onChange={update(m.attr)}
+                                                               {...m} /> : null)}
+          <div className='available'>{METRICS.exercise.map(
+            m => m.attr in fields ? null : <span key={m.attr}
+                                                 title={m.label}
+                                                 onClick={() => setFields(kv => ({ [m.attr]: 0, ...kv }))}
+                                           >{m.emoji}</span>
+          )}</div>
           <button className='save' onClick={commit}>Save</button>
         </div>
       ) : utc ? (
@@ -160,12 +147,8 @@ const ActiveSet = ({ goal, refresh }) => {
           : <Stopwatch utc={utc} finish={finish} />
       ) : (
         <div className='info'>
-          <div className='goals'>
-            {goal.reps ? <span className='reps'>Target reps: 🧮 {goal.reps}</span> : null}
-            {goal.duration_s ? <span className='duration_s'>Target duration: ⏲️  {lib.formatDuration(goal.duration_s)}</span> : null}
-            {goal.distance_m ? <span className='distance_m'>Target distance: 📍 {goal.distance_m}</span> : null}
-            {goal.resistance_n ? <span className='resistance_n'>Target resistance: 🪨 {goal.resistance_n}</span> : null}
-          </div>
+          {METRICS.exercise.map(m => m.attr in goal ? <Meter key={m.attr} value={goal[m.attr]} {...m} /> : null)}
+          <button className='start' onClick={start}>Start!</button>
         </div>
       )}
     </div>
@@ -212,9 +195,9 @@ const Stopwatch = ({ utc, finish }) => {
 
   return (
     <div className='stopwatch'>
-      <button className='finish' onClick={finish}>Finish</button>
       <span className='emoji'>⏱️</span>
       <span className='value'>{lib.formatDuration(elapsed)}</span>
+      <button className='finish' onClick={finish}>Finish</button>
     </div>
   )
 }
@@ -342,8 +325,8 @@ const HeartRateMonitor = ({ heartRate, addMeasurement, clear }) => {
 }
 
 
-const PathTracker = ({ recent, distance, addMeasurement, clear, samplePeriodSec }) => {
-  const [enabled, setEnabled] = useState(false)
+const PathTracker = ({ distance, addMeasurement, clear, samplePeriodSec }) => {
+  const [enabled, setEnabled] = useState(true)
 
   useEffect(() => {
     console.log('geo tracker is', enabled ? 'enabled' : 'disabled')
