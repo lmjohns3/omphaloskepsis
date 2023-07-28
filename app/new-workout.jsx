@@ -17,13 +17,19 @@ const NewWorkout = () => {
   const [repeats, setRepeats] = useState(false)
   const [numRepeats, setNumRepeats] = useState(2)
 
-  const update = (idx, attr) => value => setGoals(cur => [
+  const setAttr = (idx, attr) => value => setGoals(cur => [
     ...cur.slice(0, idx),
     { ...cur[idx], [attr]: value },
     ...cur.slice(idx + 1),
   ])
 
-  const updateAll = (attr, value) => {
+  const removeAttr = (idx, attr) => () => setGoals(cur => {
+    const { [attr]: _, ...remaining } = cur[idx]
+    return [...cur.slice(0, idx), remaining, ...cur.slice(idx + 1)]
+  })
+
+  const broadcastAttr = (idx, attr) => () => {
+    const value = goals[idx][attr]
     setGoals(cur => cur.map(goal => ({ ...goal, [attr]: value })))
   }
 
@@ -51,12 +57,14 @@ const NewWorkout = () => {
           <h2 className='exercise-name'>{goal.name}</h2>
           {METRICS.exercise.map(m => m.attr in goal ? <Meter key={m.attr}
                                                              value={goal[m.attr]}
-                                                             onChange={update(i, m.attr)}
+                                                             onEmojiClick={broadcastAttr(i, m.attr)}
+                                                             onEmojiLongPress={removeAttr(i, m.attr)}
+                                                             onChange={setAttr(i, m.attr)}
                                                              {...m} /> : null)}
           <div className='available'>{METRICS.exercise.map(
             m => m.attr in goal ? null : <span key={m.attr}
                                                title={m.label}
-                                               onClick={() => update(i, m.attr)(0)}>{m.emoji}</span>
+                                               onClick={() => setAttr(i, m.attr)(0)}>{m.emoji}</span>
           )}</div>
         </div>))}
 

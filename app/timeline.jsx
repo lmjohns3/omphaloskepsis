@@ -235,9 +235,7 @@ const Snapshot = ({ left, snapshot, icon, url }) => {
 
   const onClick = e => navigate(url || `/snapshot/${snapshot.id}/`)
 
-  const clickHandlers = canLongPress
-        ? useLongPress(e => setDragStart(snapshotXY(e)), onClick, { delay: 400 })
-        : { onClick }
+  const clickHandlers = canLongPress ? useLongPress(e => setDragStart(snapshotXY(e)), onClick) : { onClick }
 
   return (
     <div ref={ref}

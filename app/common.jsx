@@ -69,7 +69,7 @@ const METRICS = {
 }
 
 
-const Meter = ({ value, label, emoji, formats, onChange }) => {
+const Meter = ({ value, label, emoji, formats, onChange, onEmojiLongPress, onEmojiClick }) => {
   const [editing, setEditing] = useState(onChange && !value)
 
   if (!formats) formats = { '': null }
@@ -94,9 +94,12 @@ const Meter = ({ value, label, emoji, formats, onChange }) => {
 
   const displayed = convertToDisplay(value)
 
+  const emojiHandlers = onEmojiLongPress ? useLongPress(onEmojiLongPress, onEmojiClick) :
+                        onEmojiClick ? { onClick: onEmojiClick } : {}
+
   return (value === null || value === undefined) ? null : (
     <div className='meter' title={label}>
-      <span className='emoji'>{emoji ?? ''}</span>
+      <span className='emoji' {...emojiHandlers}>{emoji ?? ''}</span>
       {label ? <span className='label'>{label}</span> : null}
       <span className={`value ${onChange ? 'can-edit' : ''}`}
             onClick={onChange ? () => setEditing(true) : null}>
@@ -108,7 +111,9 @@ const Meter = ({ value, label, emoji, formats, onChange }) => {
                             setEditing(false)
                             onChange(+convertFromDisplay(e.target.value))
                           }} /> :
-         Math.round(displayed) === displayed ? Math.round(displayed) :
+         (Math.abs(Math.round(displayed) - displayed) < 1e-5) ? Math.round(displayed) :
+         displayed < 1 ? displayed.toPrecision(3) :
+         displayed < 10 ? displayed.toPrecision(2) :
          lib.roundTenths(displayed)}
       </span>
       <span className={`unit options-${units.length}`} onClick={() => setUnit(u => {

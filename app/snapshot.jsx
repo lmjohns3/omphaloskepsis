@@ -23,14 +23,13 @@ import './snapshot.styl'
 
 const Snapshot = () => {
   const snapshot = useLoaderData()
-  const [fields, setFields] = useState(snapshot.kv)
+
+  const [fields, setFields] = useState({ ...snapshot.kv })
 
   const updateNote = note => apiUpdate(`snapshot/${snapshot.id}`, { note })
   const updateLatLng = ([lat, lng]) => apiUpdate(`snapshot/${snapshot.id}`, { lat, lng })
-  const updateField = attr => value => (
-    apiUpdate(`snapshot/${snapshot.id}`, { [attr]: value }).then(res => setFields(res.kv)))
-
-  console.log(fields)
+  const updateField = attr => value =>
+        apiUpdate(`snapshot/${snapshot.id}`, { [attr]: value }).then(res => setFields(res.kv))
 
   const when = dayjs.unix(snapshot.utc).tz(snapshot.tz)
 
@@ -38,7 +37,7 @@ const Snapshot = () => {
     <div key={snapshot.id} className='snapshot'>
       <div className='when'><span className='emoji'>🕰️</span><span>{when.format('llll')}</span></div>
 
-      <Map lat={snapshot.lat} lng={snapshot.lng} onChanged={value => updateLatLng(value)} />
+      {snapshot.lat && snapshot.lng ? <Map lat={snapshot.lat} lng={snapshot.lng} onChange={updateLatLng} /> : null}
 
       <Mood value={fields.mood} update={updateField('mood')} />
 
@@ -51,22 +50,23 @@ const Snapshot = () => {
       </div>
 
       {METRICS.vitals.map(
-        meter => meter.attr in fields
-          ? <Meter key={meter.attr}
-                   onChange={updateField(meter.attr)}
-                   value={fields[meter.attr]}
-                   {...meter} />
+        m => m.attr in fields
+          ? <Meter key={m.attr}
+                   onChange={updateField(m.attr)}
+                   onEmojiLongPress={() => updateField(m.attr)(null)}
+                   value={fields[m.attr]}
+                   {...m} />
           : null)}
 
       <div className='available'>
         {METRICS.vitals.map(
-          meter => meter.attr in fields
+          m => m.attr in fields
             ? null
-            : <span key={meter.attr}
-                    className={meter.attr}
-                    title={meter.label}
-                    onClick={() => setFields(kv => ({ [meter.attr]: 0, ...kv }))}
-              >{meter.emoji}</span>)}
+            : <span key={m.attr}
+                    className={m.attr}
+                    title={m.label}
+                    onClick={() => setFields(cur => ({ ...cur, [m.attr]: 0 }))}
+              >{m.emoji}</span>)}
       </div>
 
       <Text value={snapshot.note || ''} update={updateNote} />
