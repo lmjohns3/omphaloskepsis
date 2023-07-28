@@ -1,8 +1,11 @@
 import proj4 from 'proj4'
 import React from 'react'
-import { MapContainer, TileLayer } from 'react-leaflet'
+import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
+import L from 'leaflet'
 
 import 'leaflet/dist/leaflet.css'
+
+const iconUrl = require('leaflet/dist/images/marker-icon.png')
 
 
 const geoToUtmConverter = zone => proj4(`+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`).forward
@@ -16,7 +19,7 @@ const getUtmZone = geo => {
 }
 
 
-const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
+const Map = ({ lat, lng, zoom, tiles, onChange }) => {
   const attributions = {
     imagery: ('Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, ' +
               'Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'),
@@ -43,13 +46,12 @@ const Map = ({ lat, lng, zoom, tiles, onChanged }) => {
       <span className='emoji'>🗺️️ </span>
       <MapContainer center={[lat, lng]}
                     zoom={zoom || 10}
-                    onViewportChanged={onChanged ? vp => onChanged(vp.center) : null}>
-        <TileLayer url={urls[tiles || 'imagery']}
-                   attribution={attributions[tiles || 'imagery']} />
+                    onViewportChanged={onChange ? vp => onChange(vp.center) : null}>
+        <TileLayer url={urls[tiles || 'imagery']} attribution={attributions[tiles || 'imagery']} />
+        <Marker position={[lat, lng]} icon={new L.Icon({ iconUrl })}></Marker>
       </MapContainer>
     </div>
   )
-  // {false ? <Marker position={[lat, lng]}><Popup>Here!</Popup></Marker> : null}
 }
 
 

@@ -30,7 +30,6 @@ module.exports = {
     },
     {
       test: /\.(png|mp3)$/i,
-      exclude: /node_modules/,
       type: 'asset/resource',
     },
   ]},
