@@ -124,7 +124,7 @@ const Meter = ({ value, label, emoji, formats, onChange }) => {
 
 // https://stackoverflow.com/q/48048957
 const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700 } = {}) => {
-  const [longPressed, setLongPressed] = useState(false)
+  const [didLongPress, setDidLongPress] = useState(false)
   const timeout = useRef()
   const target = useRef()
 
@@ -134,22 +134,22 @@ const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700
       (event.preventDefault)) ? event.preventDefault() : null
 
   const start = useCallback(event => {
-    if (event.button !== 0) return
+    if (event.button > 0) return
     if (preventDefault && event.target) {
       event.target.addEventListener('touchend', doPreventDefault, { passive: false })
       target.current = event.target
     }
-    timeout.current = setTimeout(() => { onLongPress(event); setLongPressed(true) }, delay)
+    timeout.current = setTimeout(() => { onLongPress(event); setDidLongPress(true) }, delay)
   }, [onLongPress, delay, preventDefault])
 
   const clear = useCallback((event, doClick) => {
     timeout.current && clearTimeout(timeout.current)
-    doClick && !longPressed && onClick()
-    setLongPressed(false)
+    doClick && !didLongPress && onClick()
+    setDidLongPress(false)
     if (preventDefault && target.current) {
       target.current.removeEventListener('touchend', doPreventDefault)
     }
-  }, [preventDefault, onClick, longPressed])
+  }, [preventDefault, onClick, didLongPress])
 
   return {
     onMouseDown: e => start(e),
