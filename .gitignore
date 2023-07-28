@@ -133,4 +133,5 @@ node_modules
 omphaloskepsis/static/app.html
 omphaloskepsis/static/*.css
 omphaloskepsis/static/*.js
+omphaloskepsis/static/*.mp3
 omphaloskepsis/static/*.png
