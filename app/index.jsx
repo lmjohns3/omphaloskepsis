@@ -1,15 +1,18 @@
 import './color.styl'
 import './common.styl'
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import {
   createBrowserRouter,
   Link,
+  Navigate,
   NavLink,
   Outlet,
   redirect,
   RouterProvider,
+  useLocation,
+  useNavigate,
   useRouteError,
 } from 'react-router-dom'
 
@@ -22,7 +25,6 @@ import { AuthProvider, AuthRequired, useAuth } from './auth.jsx'
 import { Collection } from './collection.jsx'
 import { Dashboard } from './dashboard.jsx'
 import { Habits } from './habits.jsx'
-import { Login } from './login.jsx'
 import { NewWorkout } from './new-workout.jsx'
 import { Snapshot } from './snapshot.jsx'
 import { Timeline } from './timeline.jsx'
@@ -31,17 +33,71 @@ import { Workout } from './workout.jsx'
 import './index.styl'
 
 
-const Splash = () => (
-  <div className='splash'>
-    <h1 id='omphaloskepsis' title='Omphaloskepsis (navel gazing)'>ὀμφᾰλοσκέψῐς</h1>
-    <p>
-      <span>👁️ navel gazing for</span>
-      <span>🏋️ physical and</span>
-      <span>🧘 mental health</span>
-    </p>
-    <p><Link to='/login/'>Log In</Link></p>
-  </div>
-)
+// https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
+const validEmailPattern = new RegExp(/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/)
+
+
+const Splash = () => {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { token, handleToken } = useAuth()
+
+  const emailInput = useRef(null)
+  const passwordInput = useRef(null)
+
+  const [error, setError] = useState(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [needsEmail, setNeedsEmail] = useState(true)
+  const [isValidEmail, setIsValidEmail] = useState(false)
+
+  useEffect(() => { setIsValidEmail((validEmailPattern.test(email))) }, [email])
+
+  useEffect(() => {
+    const ref = (needsEmail ? emailInput : passwordInput).current
+    if (ref) ref.focus()
+  }, [needsEmail])
+
+  const onSubmit = e => {
+    e.preventDefault()
+    setError(null)
+    apiUpdate('login', { email, password })
+      .then(handleToken)
+      .then(() => navigate(location.state?.then ?? '/'))
+      .catch(err => { setPassword(''); setError('Incorrect!') })
+  }
+
+  if (token) return <Navigate to={location.state?.then ?? '/'} />
+
+  return (
+    <div className='splash container'>
+      <h1 id='oomph' title='ὀμφᾰλοσκέψῐς "navel gazing"'>oomph</h1>
+      <p>
+        <span>👁️ navel gazing for</span>
+        <span>🏋️ physical and</span>
+        <span>🧘 mental health</span>
+      </p>
+      <h2>Login / Signup</h2>
+      {error ? <div className='error'>{error}</div> : null}
+      <input ref={emailInput}
+             type='email'
+             placeholder='Email'
+             autoFocus
+             value={email}
+             onChange={e => setEmail(e.target.value)}></input>
+      {needsEmail ?
+       <button disabled={!isValidEmail} onClick={() => setNeedsEmail(false)}>Continue</button> :
+       <form onSubmit={onSubmit}>
+         <input ref={passwordInput}
+                type='password'
+                placeholder='Password'
+                value={password}
+                onChange={e => setPassword(e.target.value)}></input>
+         <button type='submit'>Log In</button>
+       </form>}
+    </div>
+  )
+}
 
 
 const Error = err => (
@@ -103,10 +159,6 @@ ReactDOM.createRoot(
           path: '/habits/',
           loader: () => apiRead('habits'),
           element: <AuthRequired><Habits /></AuthRequired>,
-        },
-        {
-          path: '/login/',
-          element: <Login />,
         },
         {
           path: '/snapshot/:id/',
