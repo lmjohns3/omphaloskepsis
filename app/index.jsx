@@ -141,7 +141,7 @@ ReactDOM.createRoot(
       path: '/',
       loader: () => apiUpdate('token'),
       element: <AuthProvider><App /></AuthProvider>,
-      //errorElement: <Error />,
+      errorElement: <Error />,
       children: [
         {
           index: true,
