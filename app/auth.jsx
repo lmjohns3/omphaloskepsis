@@ -37,7 +37,7 @@ const AuthProvider = ({ children }) => {
 const AuthRequired = ({ children }) => {
   const { token } = useAuth()
   const location = useLocation()
-  return token ? children : <Navigate to='/login/' replace state={{ then: location }} />
+  return token ? children : <Navigate to='/' replace state={{ then: location }} />
 }
 
 
