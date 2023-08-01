@@ -78,7 +78,7 @@ const NewWorkout = () => {
         getOptionLabel={([name, _]) => name}
         getOptionValue={([name, _]) => name}
         styles={{
-          container: (base, state) => ({ ...base, padding: '0.5em 0.5em 0.5em 2.5rem' }),
+          container: (base, state) => ({ ...base, padding: '0.5em 0.5em 0.5em 2.5rem', maxWidth: '22em' }),
           control: (base, state) => ({ ...base, backgroundColor: '#444' }),
           menu: (base, state) => ({ ...base, backgroundColor: '#444' }),
           option: (base, state) => ({ ...base, backgroundColor: state.isFocused ? '#333' : 'inherit' }),
