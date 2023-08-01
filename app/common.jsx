@@ -103,7 +103,7 @@ const Meter = ({ value, label, emoji, formats, onChange, onEmojiLongPress, onEmo
       {label ? <span className='label'>{label}</span> : null}
       <span className={`value ${onChange ? 'can-edit' : ''}`}
             onClick={onChange ? () => setEditing(true) : null}>
-        {editing ? <input type='text'
+        {editing ? <input type='number'
                           defaultValue={displayed}
                           autoFocus
                           onFocus={e => e.target.select()}
