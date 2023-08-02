@@ -52,7 +52,7 @@ const METRICS = {
     { emoji: '⏱️', label: 'Duration', attr: 'duration_s', formats: { '': [lib.formatDuration, lib.parseDuration] } },
     { emoji: '📍', label: 'Distance', attr: 'distance_m', formats: { m: null, km: 0.001, mi: 0.0062137 } },
     { emoji: '🚲', label: 'Cadence', attr: 'cadence_hz', formats: { Hz: null, rpm: 60 } },
-    { emoji: '⚡', label: 'Average Power', attr: 'avg_power_w', formats: { W: null, hp: 0.00134102 } },
+    { emoji: '🍔', label: 'Energy', attr: 'energy_kj', formats: { kJ: null, kcal: 0.2388459 } },
   ],
   vitals: [
     { emoji: '📏', label: 'Height', attr: 'height_cm', formats: { 'in': 0.3937, 'cm': null } },
