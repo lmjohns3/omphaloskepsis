@@ -72,11 +72,8 @@ const Splash = () => {
   return (
     <div className='splash container'>
       <h1>Oomph!</h1>
-      <p>
-        <span>👁️ navel gazing for</span>
-        <span>🏋️ physical and</span>
-        <span>🧘 mental health</span>
-      </p>
+      <p>🌐 🗜️ 🧮 👁️ </p>
+      <p>A web tool for quantified <a title='ὀμφᾰλοσκέψῐς' href='https://en.wikipedia.org/wiki/Navel_gazing'>navel gazing</a>.</p>
       <h2>Login / Signup</h2>
       {error ? <div className='error'>{error}</div> : null}
       <input ref={emailInput}
@@ -95,9 +92,6 @@ const Splash = () => {
                 onChange={e => setPassword(e.target.value)}></input>
          <button type='submit'>Log In</button>
        </form>}
-      <h2>About</h2>
-      <p>Oomph! gets its name from ὀμφᾰλοσκέψῐς, a meditation practice from
-        ancient Greece that roughly means "navel gazing."</p>
     </div>
   )
 }
