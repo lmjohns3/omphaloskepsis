@@ -1,8 +1,16 @@
+bcrypt==4.0.1
 click==8.1.2
+Flask==2.2.5
 Flask-Bcrypt==1.0.1
+Flask-Limiter==3.5.0
+Flask-Mail==0.9.1
 Flask-Sessions==0.1.5
 Flask-SQLAlchemy==3.0.3
+gevent=23.9.1
+omphaloskepsis==0.0.1
 pendulum==1.2.2
+pydantic==1.9.0
 PyYAML==6.0
 redis==4.2.2
+SQLAlchemy==2.0.21
 webauthn==1.7.0

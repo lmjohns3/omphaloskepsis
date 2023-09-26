@@ -68,11 +68,14 @@ def init(ctx, config, emails):
 @click.pass_context
 def serve(ctx, host, port, config, debug, secret, domain):
     from .serve import create_app
-    create_app(
+    app = create_app(
         ctx.obj['db'], debug, secret, domain=domain, config_path=config,
-    ).run(
-        host=host, port=port, debug=debug, threaded=False, processes=1 if debug else 2
     )
+    if debug:
+        app.run(host=host, port=port, debug=debug, threaded=False, processes=1)
+    else:
+        import gevent.pywsgi
+        gevent.pywsgi.WSGIServer((host, port), app).serve_forever()
 
 
 if __name__ == '__main__':
