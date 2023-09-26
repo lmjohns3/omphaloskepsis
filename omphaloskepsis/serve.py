@@ -331,7 +331,7 @@ def index(path=''):
     return flask.render_template('app.html')
 
 
-def create_app(db, debug, secret, domain='localhost', config_path=None):
+def create_app(db, debug=False, secret=None, domain='localhost', config_path=None):
     app.config['SECRET_KEY'] = secret or secrets.token_hex(128)
 
     app.config['SESSION_TYPE'] = 'redis'
