@@ -6,6 +6,7 @@ import flask_mail
 import flask_sessions
 import flask_sqlalchemy
 import hashlib
+import jinja2
 import json
 import os
 import secrets
@@ -331,7 +332,9 @@ def index(path=''):
     return flask.render_template('app.html')
 
 
-def create_app(db, debug=False, secret=None, domain='localhost', config_path=None):
+def create_app(db, debug=False, secret=None, domain='localhost',
+               config_path=None, assets=None):
+
     app.config['SECRET_KEY'] = secret or secrets.token_hex(128)
 
     app.config['SESSION_TYPE'] = 'redis'
@@ -352,4 +355,10 @@ def create_app(db, debug=False, secret=None, domain='localhost', config_path=Non
 
     app.config['config'] = config_path
     app.config['root'] = os.path.dirname(db)
+
+    if assets is not None:
+        app.static_folder = assets
+        app.jinja_loader = jinja2.ChoiceLoader([
+            app.jinja_loader, jinja2.FileSystemLoader(assets)])
+
     return app

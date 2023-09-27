@@ -65,14 +65,17 @@ def init(ctx, config, emails):
               help='Use S for a secret session key.')
 @click.option('--domain', default='localhost', metavar='D',
               help='Only accept session cookies at this domain.')
+@click.option('--assets', default=None, metavar='DIR',
+              help='Access static / template assets from DIR.')
 @click.pass_context
-def serve(ctx, host, port, config, debug, secret, domain):
+def serve(ctx, host, port, config, debug, secret, domain, assets):
     from .serve import create_app
     app = create_app(ctx.obj['db'],
                      debug=debug,
                      secret=secret,
                      domain=domain,
-                     config_path=config)
+                     config_path=config,
+                     assets=assets)
     if debug:
         app.run(host=host, port=port, debug=True, threaded=False, processes=1)
     else:
