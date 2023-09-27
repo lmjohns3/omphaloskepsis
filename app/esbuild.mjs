@@ -1,12 +1,16 @@
-import { build } from 'esbuild'
+import { build, context } from 'esbuild'
 import { stylusLoader } from 'esbuild-stylus-loader'
 
-await build({
+const opts = {
   bundle: true,
   entryPoints: ['index.jsx'],
-  loader: { '.png': 'file', '.mp3': 'file' },
-  minify: true,
+  loader: { '.png': 'dataurl', '.mp3': 'dataurl' },
   outdir: '../omphaloskepsis/static/',
   plugins: [stylusLoader()],
-  sourcemap: true,
-})
+}
+
+if (process.env.NODE_ENV === 'production') {
+  await build({ ...opts, minify: true, sourcemap: false })
+} else {
+  await (await context({ ...opts, minify: false, sourcemap: true })).watch()
+}
