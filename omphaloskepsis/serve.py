@@ -67,7 +67,6 @@ def _is_api_request_ok():
 def _check_csrf():
     session = flask.session.get('csrf', 0)
     header = flask.request.headers.get('x-omphaloskepsis-csrf', 1)
-    print(session, header)
     if flask.request.method != 'GET' and session != header:
         flask.abort(400)
 
