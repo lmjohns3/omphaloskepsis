@@ -44,9 +44,9 @@ const Snapshot = () => {
       <div className='feels'>
         <span className='emoji'></span>
         <Dial icon='😄' label='Joy' value={fields.joy} update={updateField('joy')} />
-        <Dial icon='😢' label='Sadness' value={fields.sadness} update={updateField('sadness')} />
         <Dial icon='😠' label='Anger' value={fields.anger} update={updateField('anger')} />
         <Dial icon='😨' label='Fear' value={fields.fear} update={updateField('fear')} />
+        <Dial icon='😢' label='Sadness' value={fields.sadness} update={updateField('sadness')} />
       </div>
 
       {METRICS.vitals.map(
@@ -118,7 +118,7 @@ const Mood = ({ value, update }) => {
 }
 
 
-const Delete = () => {
+const Delete = ({ snapshot }) => {
   const [isActive, setIsActive] = useState(false)
   const navigate = useNavigate()
 

@@ -5,21 +5,19 @@ dayjs.extend(require('dayjs/plugin/localizedFormat'))
 dayjs.extend(require('dayjs/plugin/relativeTime'))
 
 import React from 'react'
-import { Link, useLoaderData, useNavigate } from 'react-router-dom'
+import { Link, redirect, useLoaderData, useNavigate } from 'react-router-dom'
+
+import { apiCreate } from './api.jsx'
 
 import './dashboard.styl'
 
 
 const Dashboard = () => {
   const navigate = useNavigate()
-  const { snapshots } = useLoaderData()
+  const { snapshots } = useLoaderData() ?? { snapshots: [] }
 
-  const startSnapshot = () => apiCreate('snapshots')
-        .then(res => redirect(`/snapshot/${res.id}/`))
-
-  const startSleep = () => apiCreate('snapshots', { flavor: 'sleep' })
-        .then(res => redirect(`/snapshot/${res.id}/`))
-
+  const startSnapshot = () => apiCreate('snapshots').then(res => redirect(`/snapshot/${res.id}/`))
+  const startSleep = () => apiCreate('snapshots', { flavor: 'sleep' }).then(res => redirect(`/snapshot/${res.id}/`))
   const startWorkout = () => navigate('/workout/new/')
 
   return (
