@@ -215,6 +215,7 @@ def get_account():
 def update_account():
     req = flask.request
     req.acct.update_from(req.json)
+    gdb.session.add(req.acct)
     gdb.session.commit()
     return _json(req.acct)
 
