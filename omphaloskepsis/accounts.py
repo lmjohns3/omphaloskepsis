@@ -20,7 +20,7 @@ def decode_id(x):
 class Account(Model):
     __tablename__ = 'accounts'
 
-    STRINGS = frozenset()
+    STRINGS = frozenset(['name', 'birthday'])
 
     id = db.Column(db.Integer, primary_key=True, default=lambda: random.getrandbits(63))
 
