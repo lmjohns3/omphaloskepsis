@@ -16,8 +16,8 @@ import webauthn
 import yaml
 import werkzeug.middleware.proxy_fix as pfix
 
-from .accounts import Account, Auth
-from .snapshots import Collection, Snapshot
+from . import accounts
+from .measurements import Collection, Profile, Snapshot
 
 app = flask.Flask('omphaloskepsis', template_folder='static')
 app.wsgi_app = pfix.ProxyFix(app.wsgi_app, x_for=1)
@@ -47,7 +47,7 @@ def _populate_account():
     req = flask.request
     req.acct = None
     if 'aid' in flask.session:
-        acct = gdb.session.get(Account, flask.session['aid'])
+        acct = gdb.session.get(accounts.Account, flask.session['aid'])
         if acct:
             acct.open_db(app.config['root'], app.config['SQLALCHEMY_ECHO'])
             req.acct = acct
@@ -75,43 +75,46 @@ def _check_csrf():
 
 @app.route('/api/dashboard/', methods=['GET'])
 def get_dashboard():
-    req = flask.request
-    snapshots = sqlalchemy.select(Snapshot).order_by(Snapshot.utc.desc()).limit(3)
-    result = dict(
-        snapshots=[s.to_dict() for s in req.acct.session.scalars(snapshots)],
-    )
-    return flask.jsonify(result)
+    sess = flask.request.acct.session
+    return flask.jsonify(dict(
+        snapshots=[s.to_dict() for s in sess.scalars(
+            sqlalchemy.select(Snapshot).order_by(Snapshot.utc.desc()).limit(3)
+        )],
+    ))
 
 
 @app.route('/api/habits/', methods=['GET'])
 def get_habits():
-    req = flask.request
-    return _json(req.acct.session.scalars(
+    sess = flask.request.acct.session
+    return _json(sess.scalars(
         sqlalchemy.select(Collection).where(Collection.flavor == 'habit')))
 
 
 @app.route('/api/timeline/', methods=['GET'])
 def get_timeline():
     req = flask.request
+    sess = req.acct.session
     now = time.time()
     get = lambda key, days: req.args.get(key, now + 86400 * days)
-    result = dict(snapshots={
+    result = {}
+    result['snapshots'] = {
         s.id: s.to_dict() for s in
-        req.acct.session.scalars(sqlalchemy.select(Snapshot).where(
+        sess.scalars(sqlalchemy.select(Snapshot).where(
             Snapshot.utc >= get('start', -90),
             Snapshot.utc <= get('end', 0),
         ))
-    })
+    }
     cids = {s.get('collection_id') for s in result['snapshots'].values()}
     result['collections'] = {
         c.id: c.to_dict() for c in
-        req.acct.session.scalars(sqlalchemy.select(Collection).where(Collection.id.in_(cids)))
+        sess.scalars(sqlalchemy.select(Collection).where(
+            Collection.id.in_(cids),
+        ))
     }
     return flask.jsonify(result)
 
 @app.route('/api/workouts/', methods=['GET'])
 def get_workouts():
-    req = flask.request
     result = dict(exercises={}, workouts={})
     if app.config['config']:
         with open(app.config['config']) as handle:
@@ -124,18 +127,19 @@ def get_workouts():
 @app.route('/api/snapshots/', methods=['POST'])
 def create_snapshot():
     req = flask.request
+    sess = req.acct.session
     snapshot = Snapshot()
     if 'flavor' in req.json:
         snapshot.collection = Collection(flavor=req.json.pop('flavor'))
     snapshot.update_from(req.json)
-    req.acct.session.add(snapshot)
-    req.acct.session.commit()
+    sess.add(snapshot)
+    sess.commit()
     return _json(snapshot)
 
 @app.route('/api/snapshot/<int:sid>/', methods=['GET'])
 def get_snapshot(sid):
-    req = flask.request
-    snapshot = req.acct.session.get(Snapshot, sid)
+    sess = flask.request.acct.session
+    snapshot = sess.get(Snapshot, sid)
     if not snapshot:
         flask.abort(403)
     return _json(snapshot)
@@ -143,21 +147,22 @@ def get_snapshot(sid):
 @app.route('/api/snapshot/<int:sid>/', methods=['POST'])
 def update_snapshot(sid):
     req = flask.request
-    snapshot = req.acct.session.get(Snapshot, sid)
+    sess = req.acct.session
+    snapshot = sess.get(Snapshot, sid)
     if not snapshot:
         flask.abort(403)
     snapshot.update_from(req.json)
-    req.acct.session.commit()
+    sess.commit()
     return _json(snapshot)
 
 @app.route('/api/snapshot/<int:sid>/', methods=['DELETE'])
 def delete_snapshot(sid):
-    req = flask.request
-    snapshot = req.acct.session.get(Snapshot, sid)
+    sess = flask.request.acct.session
+    snapshot = sess.get(Snapshot, sid)
     if not snapshot:
         flask.abort(403)
-    req.acct.session.delete(snapshot)
-    req.acct.session.commit()
+    sess.delete(snapshot)
+    sess.commit()
     return flask.jsonify({})
 
 
@@ -166,17 +171,18 @@ def delete_snapshot(sid):
 @app.route('/api/collections/', methods=['POST'])
 def create_collection():
     req = flask.request
+    sess = req.acct.session
     collection = Collection()
     collection.update_from(req.json)
-    req.acct.session.add(collection)
-    req.acct.session.commit()
+    sess.add(collection)
+    sess.commit()
     return _json(collection)
 
 @app.route('/api/collection/<int:cid>/', methods=['GET'])
 def get_collection(cid):
-    req = flask.request
-    collection = req.acct.session.get(Collection, cid)
-    snapshots = req.acct.session.scalars(sqlalchemy.select(Snapshot).where(Snapshot.collection_id == cid))
+    sess = flask.request.acct.session
+    collection = sess.get(Collection, cid)
+    snapshots = sess.scalars(sqlalchemy.select(Snapshot).where(Snapshot.collection_id == cid))
     if not collection:
         flask.abort(403)
     return flask.jsonify(dict(
@@ -187,22 +193,45 @@ def get_collection(cid):
 @app.route('/api/collection/<int:cid>/', methods=['POST'])
 def update_collection(cid):
     req = flask.request
-    collection = req.acct.session.get(Collection, cid)
+    sess = req.acct.session
+    collection = sess.get(Collection, cid)
     if not collection:
         flask.abort(403)
     collection.update_from(req.json)
-    req.acct.session.commit()
+    sess.commit()
     return _json(collection)
 
 @app.route('/api/collection/<int:cid>/', methods=['DELETE'])
 def delete_collection(cid):
-    req = flask.request
-    collection = req.acct.session.get(Collection, cid)
+    sess = flask.request.acct.session
+    collection = sess.get(Collection, cid)
     if not collection:
         flask.abort(403)
-    req.acct.session.delete(collection)
-    req.acct.session.commit()
+    sess.delete(collection)
+    sess.commit()
     return flask.jsonify({})
+
+
+# profile
+
+@app.route('/api/profile/', methods=['GET'])
+def get_profile():
+    sess = flask.request.acct.session
+    profile = sess.get(Profile, 1)
+    if not profile:
+        flask.abort(403)
+    return _json(profile)
+
+@app.route('/api/profile/', methods=['POST'])
+def update_profile():
+    req = flask.request
+    sess = req.acct.session
+    profile = sess.get(Profile, 1)
+    if not profile:
+        flask.abort(403)
+    profile.update_from(req.json)
+    sess.commit()
+    return _json(profile)
 
 
 # account
@@ -262,9 +291,9 @@ def register():
             email64=base64.urlsafe_b64encode(email.encode('utf8')).strip(b'='),
         )))
 
-    account = Account(auth=Auth(email=email,
-                                validation_code=code,
-                                password=req.json.get('password')))
+    account = accounts.Account()
+    account.emails.append(accounts.Email(email=email, validation_code=code))
+    account.passwords.append(accounts.Password(password=req.json.get('password')))
 
     gdb.session.add(account)
     gdb.session.commit()
@@ -285,32 +314,33 @@ def token():
 def login():
     req = flask.request
 
-    if 'email' not in req.json:
-        flask.abort(401)
-
-    auth = gdb.session.scalar(sqlalchemy.select(Auth).where(
-        Auth.email == req.json['email'],
-        Auth.validated_utc > 0,
-        Auth.blocked_utc < 0,
-    ))
-    if not auth:
-        flask.abort(404)
-
-    if 'password' not in req.json:
+    if 'email' not in req.json or 'password' not in req.json:
         flask.abort(400)
 
-    if not bcrypt.check_password_hash(auth.password, req.json['password']):
-        auth.last_failure_utc = time.time()
-        auth.failures_since_success += 1
-        gdb.session.commit()
-        flask.abort(403)
+    email = gdb.session.scalar(sqlalchemy.select(accounts.Email).where(
+        accounts.Email.email == req.json['email'],
+        accounts.Email.validated_utc > 0,
+    ))
+    if not email:
+        flask.abort(404)
 
-    auth.last_success_utc = time.time()
-    auth.failures_since_success = 0
+    account = email.account
+    if account.blocked_utc > 0:
+        flask.abort(401)
+
+    pw = account.current_password
+    if not bcrypt.check_password_hash(pw.password, req.json['password']):
+        pw.last_failure_utc = time.time()
+        pw.failures_since_success += 1
+        gdb.session.commit()
+        flask.abort(401)
+
+    pw.last_success_utc = time.time()
+    pw.failures_since_success = 0
     gdb.session.commit()
 
-    flask.session['aid'] = auth.account_id
-    flask.session['csrf'] = _create_csrf_token(auth.account_id)
+    flask.session['aid'] = account.id
+    flask.session['csrf'] = _create_csrf_token(account.id)
     return flask.jsonify(dict(
         aid=flask.session['aid'],
         csrf=flask.session['csrf'],
@@ -341,12 +371,12 @@ def create_app(db, debug=False, secret=None, domain='localhost',
     app.config['SESSION_REDIS'] = 'redis://127.0.0.1:6379'
     app.config['SESSION_KEY_PREFIX'] = 'omphaloskepsis:'
     app.config['SESSION_USE_SIGNER'] = True
-    app.config['SESSION_COOKIE_NAME'] = 'om'
+    app.config['SESSION_COOKIE_NAME'] = 'oomph'
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SECURE'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
     app.config['SESSION_COOKIE_DOMAIN'] = domain
-    app.config['PERMANENT_SESSION_LIFETIME'] = 12 * 3600
+    app.config['PERMANENT_SESSION_LIFETIME'] = 86400
     flask_sessions.Session().init_app(app)
 
     app.config['SQLALCHEMY_ECHO'] = debug

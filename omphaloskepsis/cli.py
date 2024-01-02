@@ -39,15 +39,16 @@ def init(ctx, config, emails):
     accounts.Model.metadata.create_all(engine)
     sess = db.sessionmaker(bind=engine, autoflush=False)()
     for email in emails:
-        account = accounts.Account(auth=accounts.Auth(
-            email=email,
-            validated_utc=time.time(),
-            password=bcrypt.hashpw(
-                click.prompt(
-                    f'Password for {email}',
-                    hide_input=True,
-                    confirmation_prompt=False,
-                ).encode('utf8'), bcrypt.gensalt())))
+        hashed = bcrypt.hashpw(
+            click.prompt(
+                f'Password for {email}',
+                hide_input=True,
+                confirmation_prompt=False,
+            ).encode('utf8'),
+            bcrypt.gensalt())
+        account = accounts.Account()
+        account.emails.append(accounts.Email(email=email, validated_utc=time.time()))
+        account.passwords.append(accounts.Password(password=hashed))
         sess.add(account)
         sess.commit()
         account.create_db(root)
