@@ -52,7 +52,7 @@ const METRICS = {
     { emoji: '⏱️', label: 'Duration', attr: 'duration_s', formats: { '': [lib.formatDuration, lib.parseDuration] } },
     { emoji: '📍', label: 'Distance', attr: 'distance_m', formats: { m: null, km: 0.001, mi: 0.0062137 } },
     { emoji: '🚲', label: 'Cadence', attr: 'cadence_hz', formats: { Hz: null, rpm: 60 } },
-    { emoji: '🍔', label: 'Energy', attr: 'energy_kj', formats: { kJ: null, kcal: 0.2388459 } },
+    { emoji: '🍔', label: 'Energy', attr: 'energy_kj', formats: { kJ: null, Wh: 0.2777778, kcal: 0.2388459 } },
   ],
   vitals: [
     { emoji: '📏', label: 'Height', attr: 'height_cm', formats: { 'in': 0.3937, 'cm': null } },
@@ -63,11 +63,12 @@ const METRICS = {
     { emoji: '🫀️', label: 'Blood Pressure', attr: 'blood_pressure_mmhg', formats: { 'mmHg': null } },
     { emoji: '🩸', label: 'Blood Oxygen', attr: 'oxygen_spo2_pct', formats: { '%': null } },
     { emoji: '🍭', label: 'Glucose', attr: 'glucose_mmol_l', formats: { 'mmol/L': null } },
-    { emoji: '🫁', label: 'VO2 Max', attr: 'vo2_max_ml_kg_min', formats: { 'mL/(kg·min)': null } },
     { emoji: '💪', label: 'Lactate', attr: 'lactate_mmol_l', formats: { 'mmol/L': null } },
+    { emoji: '🫁', label: 'VO2 Max', attr: 'vo2_max_ml_kg_min', formats: { 'mL/(kg·min)': null } },
   ],
 }
 
+// 💨 🧮 🪨 ⏱️' 📍 🚲 🍔 📏 ⚖️' 🌡️' 💗️' 🫀️' 🩸 🍭 🫁 💪
 
 const Meter = ({ value, label, emoji, formats, onChange, onEmojiLongPress, onEmojiClick }) => {
   const [editing, setEditing] = useState(onChange && !value)

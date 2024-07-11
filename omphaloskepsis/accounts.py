@@ -6,6 +6,7 @@ import struct
 import time
 
 from . import db
+from . import measurements
 
 Model = db.declarative_base()
 
@@ -15,12 +16,32 @@ def encode_id(x):
 def decode_id(x):
     return struct.unpack('>q', base64.urlsafe_b64decode(x + b'='))[0]
 
+def path(root, x):
+    enc = encode_id(x).decode('utf8')
+    return os.path.join(root, enc[-1], enc[-2], f'{enc}.db')
+
+def create(root, x):
+    p = path(root, x)
+    if not os.path.isdir(os.path.dirname(p)):
+        os.makedirs(os.path.dirname(p))
+    elif os.path.exists(p):
+        os.unlink(p)
+    engine = db.engine(p)
+    measurements.Model.metadata.create_all(engine)
+    sess = db.sessionmaker(bind=engine, autoflush=False)()
+    sess.add(measurements.Profile())
+    sess.commit()
+
+
 def AccountIdColumn():
     fk = db.ForeignKey('accounts.id', onupdate='CASCADE', ondelete='CASCADE')
     return db.Column(db.Integer, fk, nullable=False)
 
-def account_relationship(backref):
-    return db.relationship(Account, lazy='selectin', uselist=False, backref=backref)
+def account_relationship(backref, order_by=None):
+    kwargs = dict(lazy='selectin', uselist=False, backref=backref)
+    if order_by:
+        kwargs['order_by'] = order_by
+    return db.relationship(Account, **kwargs)
 
 
 class Account(Model):
@@ -29,24 +50,6 @@ class Account(Model):
     id = db.Column(db.Integer, primary_key=True, default=lambda: random.getrandbits(63))
 
     blocked_utc = db.Column(db.Integer, default=-1, nullable=False)
-
-    @property
-    def current_password(self):
-        return self.passwords.order_by(Password.created_utc.desc()).first()
-
-    def open_db(self, root, echo=False):
-        enc = encode_id(self.id).decode('utf8')
-        path = os.path.join(root, enc[-1], enc[-2], f'{enc}.db')
-        self.session = db.sessionmaker(bind=db.engine(path, echo), autoflush=False)()
-
-    def create_db(self, root):
-        enc = encode_id(self.id).decode('utf8')
-        path = os.path.join(root, enc[-1], enc[-2], f'{enc}.db')
-        if not os.path.isdir(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
-        if not os.path.exists(path):
-            from . import measurements
-            measurements.Model.metadata.create_all(db.engine(path))
 
     def to_dict(self):
         return dict(
@@ -85,7 +88,7 @@ class Password(Model):
     id = db.Column(db.Integer, primary_key=True)
 
     account_id = AccountIdColumn()
-    account = account_relationship('passwords')
+    account = account_relationship('passwords', order_by='Password.created_utc.desc()')
 
     created_utc = db.Column(db.Integer, default=time.time, nullable=False)
     last_success_utc = db.Column(db.Integer, default=-1, nullable=False)

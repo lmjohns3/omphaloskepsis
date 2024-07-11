@@ -24,7 +24,7 @@ def cli(ctx, db):
 @click.pass_context
 def init(ctx, config, emails):
     import sqlalchemy
-    from . import accounts, db, snapshots
+    from . import accounts, db, measurements
 
     static = {}
     if config:

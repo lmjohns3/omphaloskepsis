@@ -34,6 +34,8 @@ class Profile(Model):
 
     STRINGS = frozenset(['name', 'birthday'])
 
+    id = db.Column(db.Integer, primary_key=True)
+
     kv = db.Column(db.LargeBinary)
 
     def update_from(self, data):

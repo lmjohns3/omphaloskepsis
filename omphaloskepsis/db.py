@@ -2,8 +2,7 @@ import sqlalchemy
 
 # Create some aliases for sqlalchemy symbols.
 from sqlalchemy import Column, Float, ForeignKey, Integer, LargeBinary, String, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import backref, relationship, sessionmaker
+from sqlalchemy.orm import backref, declarative_base, relationship, sessionmaker
 
 
 def engine(path, echo=False):

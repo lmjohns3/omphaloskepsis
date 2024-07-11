@@ -73,7 +73,7 @@ const Splash = () => {
     <div className='splash container'>
       <h1>Oomph!</h1>
       <p>🌐 🗜️ 🧮 👁️ </p>
-      <p>A web tool for quantified <a title='ὀμφᾰλοσκέψῐς' href='https://en.wikipedia.org/wiki/Navel_gazing'>navel gazing</a>.</p>
+      <p>A web tool for <a title='ὀμφᾰλοσκέψῐς' href='https://en.wikipedia.org/wiki/Navel_gazing'>navel gazing</a>.</p>
       <h2>Login / Signup</h2>
       {error ? <div className='error'>{error}</div> : null}
       <input ref={emailInput}

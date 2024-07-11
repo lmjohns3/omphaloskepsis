@@ -45,12 +45,16 @@ def _json(items):
 @app.before_request
 def _populate_account():
     req = flask.request
-    req.acct = None
+    req.sess = None
     if 'aid' in flask.session:
-        acct = gdb.session.get(accounts.Account, flask.session['aid'])
         if acct:
-            acct.open_db(app.config['root'], app.config['SQLALCHEMY_ECHO'])
-            req.acct = acct
+            # open account-specific database
+            req.session = db.sessionmaker(
+                bind=db.engine(
+                    accounts.db_path(app.config['root']),
+                    app.config['SQLALCHEMY_ECHO'],
+                ), autoflush=False
+            )()
         else:
           del flask.session['aid']
 
@@ -82,24 +86,21 @@ def get_dashboard():
         )],
     ))
 
-
 @app.route('/api/habits/', methods=['GET'])
 def get_habits():
     sess = flask.request.acct.session
     return _json(sess.scalars(
         sqlalchemy.select(Collection).where(Collection.flavor == 'habit')))
 
-
 @app.route('/api/timeline/', methods=['GET'])
 def get_timeline():
     req = flask.request
-    sess = req.acct.session
     now = time.time()
     get = lambda key, days: req.args.get(key, now + 86400 * days)
     result = {}
     result['snapshots'] = {
         s.id: s.to_dict() for s in
-        sess.scalars(sqlalchemy.select(Snapshot).where(
+        req.sess.scalars(sqlalchemy.select(Snapshot).where(
             Snapshot.utc >= get('start', -90),
             Snapshot.utc <= get('end', 0),
         ))
@@ -107,7 +108,7 @@ def get_timeline():
     cids = {s.get('collection_id') for s in result['snapshots'].values()}
     result['collections'] = {
         c.id: c.to_dict() for c in
-        sess.scalars(sqlalchemy.select(Collection).where(
+        req.sess.scalars(sqlalchemy.select(Collection).where(
             Collection.id.in_(cids),
         ))
     }
@@ -127,19 +128,17 @@ def get_workouts():
 @app.route('/api/snapshots/', methods=['POST'])
 def create_snapshot():
     req = flask.request
-    sess = req.acct.session
     snapshot = Snapshot()
     if 'flavor' in req.json:
         snapshot.collection = Collection(flavor=req.json.pop('flavor'))
     snapshot.update_from(req.json)
-    sess.add(snapshot)
-    sess.commit()
+    req.sess.add(snapshot)
+    req.sess.commit()
     return _json(snapshot)
 
 @app.route('/api/snapshot/<int:sid>/', methods=['GET'])
 def get_snapshot(sid):
-    sess = flask.request.acct.session
-    snapshot = sess.get(Snapshot, sid)
+    snapshot = flask.request.sess.get(Snapshot, sid)
     if not snapshot:
         flask.abort(403)
     return _json(snapshot)
@@ -147,22 +146,21 @@ def get_snapshot(sid):
 @app.route('/api/snapshot/<int:sid>/', methods=['POST'])
 def update_snapshot(sid):
     req = flask.request
-    sess = req.acct.session
-    snapshot = sess.get(Snapshot, sid)
+    snapshot = req.sess.get(Snapshot, sid)
     if not snapshot:
         flask.abort(403)
     snapshot.update_from(req.json)
-    sess.commit()
+    req.sess.commit()
     return _json(snapshot)
 
 @app.route('/api/snapshot/<int:sid>/', methods=['DELETE'])
 def delete_snapshot(sid):
-    sess = flask.request.acct.session
-    snapshot = sess.get(Snapshot, sid)
+    req = flask.request
+    snapshot = req.sess.get(Snapshot, sid)
     if not snapshot:
         flask.abort(403)
-    sess.delete(snapshot)
-    sess.commit()
+    req.sess.delete(snapshot)
+    req.sess.commit()
     return flask.jsonify({})
 
 
@@ -171,11 +169,10 @@ def delete_snapshot(sid):
 @app.route('/api/collections/', methods=['POST'])
 def create_collection():
     req = flask.request
-    sess = req.acct.session
     collection = Collection()
     collection.update_from(req.json)
-    sess.add(collection)
-    sess.commit()
+    req.sess.add(collection)
+    req.sess.commit()
     return _json(collection)
 
 @app.route('/api/collection/<int:cid>/', methods=['GET'])
@@ -193,8 +190,7 @@ def get_collection(cid):
 @app.route('/api/collection/<int:cid>/', methods=['POST'])
 def update_collection(cid):
     req = flask.request
-    sess = req.acct.session
-    collection = sess.get(Collection, cid)
+    collection = req.sess.get(Collection, cid)
     if not collection:
         flask.abort(403)
     collection.update_from(req.json)
@@ -203,8 +199,7 @@ def update_collection(cid):
 
 @app.route('/api/collection/<int:cid>/', methods=['DELETE'])
 def delete_collection(cid):
-    sess = flask.request.acct.session
-    collection = sess.get(Collection, cid)
+    collection = flask.request..get(Collection, cid)
     if not collection:
         flask.abort(403)
     sess.delete(collection)
@@ -216,8 +211,7 @@ def delete_collection(cid):
 
 @app.route('/api/profile/', methods=['GET'])
 def get_profile():
-    sess = flask.request.acct.session
-    profile = sess.get(Profile, 1)
+    profile = flask.request.sess.get(Profile, 1)
     if not profile:
         flask.abort(403)
     return _json(profile)
@@ -225,8 +219,7 @@ def get_profile():
 @app.route('/api/profile/', methods=['POST'])
 def update_profile():
     req = flask.request
-    sess = req.acct.session
-    profile = sess.get(Profile, 1)
+    profile = req.sess.get(Profile, 1)
     if not profile:
         flask.abort(403)
     profile.update_from(req.json)
@@ -238,19 +231,18 @@ def update_profile():
 
 @app.route('/api/account/', methods=['GET'])
 def get_account():
-    return _json(flask.request.acct)
+    return _json(gdb.session.get(accounts.Account, flask.session['aid']))
 
 @app.route('/api/account/', methods=['POST'])
 def update_account():
-    req = flask.request
-    req.acct.update_from(req.json)
-    gdb.session.add(req.acct)
+    acct = gdb.session.get(accounts.Account, flask.session['aid'])
+    acct.update_from(flask.request.json)
     gdb.session.commit()
-    return _json(req.acct)
+    return _json(acct)
 
 @app.route('/api/account/', methods=['DELETE'])
 def delete_account():
-    gdb.session.delete(flask.request.acct)
+    gdb.session.delete(gdb.session.get(accounts.Account, flask.session['aid']))
     gdb.session.commit()
     return flask.jsonify({})
 
@@ -307,7 +299,7 @@ def register():
 
 @app.route('/api/token/', methods=['POST'])
 def token():
-    return flask.jsonify(dict(aid=flask.session['aid'], csrf=flask.session['csrf']))
+    return flask.jsonify(dict(csrf=flask.session['csrf']))
 
 
 @app.route('/api/login/', methods=['POST'])
@@ -328,7 +320,7 @@ def login():
     if account.blocked_utc > 0:
         flask.abort(401)
 
-    pw = account.current_password
+    pw = account.passwords[0]
     if not bcrypt.check_password_hash(pw.password, req.json['password']):
         pw.last_failure_utc = time.time()
         pw.failures_since_success += 1
