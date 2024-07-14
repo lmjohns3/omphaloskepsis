@@ -62,7 +62,9 @@ const useGeo = (
 ) => {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
-      resolve, reject, { timeout, maximumAge, enableHighAccuracy })
+      resolve,
+      ({ code, message }) => reject(Object.assign(new Error(message), { name: 'PositionError', code })),
+      { timeout, maximumAge, enableHighAccuracy })
   })
 }
 
