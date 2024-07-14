@@ -9,7 +9,7 @@ import lib from './lib.jsx'
 import './workout.styl'
 
 
-const NewWorkout = () => {
+export default () => {
   const navigate = useNavigate()
   const { exercises, workouts } = useLoaderData()
   const [goals, setGoals] = useState([])
@@ -115,6 +115,3 @@ const NewWorkout = () => {
     </div>
   )
 }
-
-
-export { NewWorkout }

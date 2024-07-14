@@ -1,7 +1,4 @@
 import './habits.styl'
 
 
-const Habits = () => 'Habits.'
-
-
-export { Habits }
+export default Habit = () => 'Habits.'

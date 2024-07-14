@@ -20,17 +20,7 @@ import alarmSound from './alarm.mp3'
 import './workout.styl'
 
 
-const sumDistance = ({ acc, prev }, geo) => {
-  const { latitude: lat, longitude: lng } = geo.coords
-  const [e, n] = geoToUtmConverter(getUtmZone(geo))([lng, lat])
-  if (!prev) return { acc: 0, prev: [e, n] }
-  const [pe, pn] = prev
-  const [de, dn] = [e - pe, n - pn]
-  return { acc: acc + Math.sqrt(de * de + dn * dn), prev: [e, n] }
-}
-
-
-const Workout = () => {
+export default () => {
   const { collection, snapshots: initialSnapshots } = useLoaderData()
 
   const [snapshots, setSnapshots] = useState(initialSnapshots)
@@ -153,6 +143,16 @@ const ActiveSet = ({ goal, refresh }) => {
       )}
     </div>
   )
+}
+
+
+const sumDistance = ({ acc, prev }, geo) => {
+  const { latitude: lat, longitude: lng } = geo.coords
+  const [e, n] = geoToUtmConverter(getUtmZone(geo))([lng, lat])
+  if (!prev) return { acc: 0, prev: [e, n] }
+  const [pe, pn] = prev
+  const [de, dn] = [e - pe, n - pn]
+  return { acc: acc + Math.sqrt(de * de + dn * dn), prev: [e, n] }
 }
 
 
@@ -357,6 +357,3 @@ const PathTracker = ({ distance, addMeasurement, clear, samplePeriodSec }) => {
     </div>
   )
 }
-
-
-export { Workout }

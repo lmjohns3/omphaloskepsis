@@ -19,7 +19,7 @@ const keyForDay = utc => utc.format(KEY_FMT)
 const dayFromKey = key => dayjs.utc(key, KEY_FMT)
 
 
-const Timeline = () => {
+export default () => {
   const { snapshots, collections } = useLoaderData()
 
   const days = {}
@@ -257,5 +257,3 @@ const Snapshot = ({ left, snapshot, icon, url }) => {
     </div>
   )
 }
-
-export { Timeline }
