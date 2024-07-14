@@ -20,6 +20,8 @@
     "babel-loader": "^9.1.2",
     "css-loader": "^6.8.1",
     "dayjs": "^1.11.7",
+    "dexie": "^4.0.8",
+    "dexie-react-hooks": "^1.1.7",
     "discrete-wavelets": "^5.0.3",
     "eruda": "^3.0.0",
     "esbuild": "^0.19.3",

@@ -4,8 +4,10 @@ dayjs.extend(require('dayjs/plugin/timezone'))
 dayjs.extend(require('dayjs/plugin/localizedFormat'))
 dayjs.extend(require('dayjs/plugin/relativeTime'))
 
+import Dexie from 'dexie'
+import { useLiveQuery } from 'dexie-react-hooks'
 import React, { useState } from 'react'
-import { useLoaderData, useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import showdown from 'showdown'
 
 showdown.setOption('simplifiedAutoLink', true)
@@ -13,7 +15,6 @@ showdown.setOption('excludeTrailingPunctuationFromURLs', true)
 showdown.setOption('literalMidWordUnderscores', true)
 showdown.setOption('literalMidWordAsterisks', true)
 
-import { apiUpdate, apiDelete } from './api.jsx'
 import { Dial, Meter, METRICS } from './common.jsx'
 import { Map, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
@@ -21,55 +22,57 @@ import lib from './lib.jsx'
 import './snapshot.styl'
 
 
-const Snapshot = () => {
-  const snapshot = useLoaderData()
-
-  const [fields, setFields] = useState({ ...snapshot.kv })
-
-  const updateNote = note => apiUpdate(`snapshot/${snapshot.id}`, { note })
-  const updateLatLng = ([lat, lng]) => apiUpdate(`snapshot/${snapshot.id}`, { lat, lng })
-  const updateField = attr => value =>
-        apiUpdate(`snapshot/${snapshot.id}`, { [attr]: value }).then(res => setFields(res.kv))
-
+export default () => {
+  const id = +useParams().id
+  const navigate = useNavigate()
+  const snapshots = useLiveQuery(() => db.snapshots.where({ id }).toArray(), [id])
+  if (!snapshots) return null
+  const snapshot = snapshots[0]
+  if (!snapshot) return navigate('/')
   const when = dayjs.unix(snapshot.utc).tz(snapshot.tz)
 
+  const update = attr => value => db.snapshots.update(snapshot.id, { [attr]: value })
+
   return (
-    <div key={snapshot.id} className='snapshot'>
+    <div key={id} className='snapshot'>
       <div className='when'><span className='emoji'>🕰️</span><span>{when.format('llll')}</span></div>
 
-      {snapshot.lat && snapshot.lng ? <Map lat={snapshot.lat} lng={snapshot.lng} onChange={updateLatLng} /> : null}
+      {!snapshot.lat || !snapshot.lng ? null :
+       <Map lat={snapshot.lat}
+            lng={snapshot.lng}
+            onChange={([lat, lng]) => db.snapshots.update(snapshot.id, { lat, lng })} />}
 
-      <Mood value={fields.mood} update={updateField('mood')} />
+      <Mood value={snapshot.mood} update={update('mood')} />
 
       <div className='feels'>
         <span className='emoji'></span>
-        <Dial icon='😄' label='Joy' value={fields.joy} update={updateField('joy')} />
-        <Dial icon='😠' label='Anger' value={fields.anger} update={updateField('anger')} />
-        <Dial icon='😨' label='Fear' value={fields.fear} update={updateField('fear')} />
-        <Dial icon='😢' label='Sadness' value={fields.sadness} update={updateField('sadness')} />
+        <Dial icon='😄' label='Joy' value={snapshot.joy} update={update('joy')} />
+        <Dial icon='😠' label='Anger' value={snapshot.anger} update={update('anger')} />
+        <Dial icon='😨' label='Fear' value={snapshot.fear} update={update('fear')} />
+        <Dial icon='😢' label='Sadness' value={snapshot.sadness} update={update('sadness')} />
       </div>
 
       {METRICS.vitals.map(
-        m => m.attr in fields
+        m => m.attr in snapshot
           ? <Meter key={m.attr}
-                   onChange={updateField(m.attr)}
-                   onEmojiLongPress={() => updateField(m.attr)(null)}
-                   value={fields[m.attr]}
+                   onChange={update(m.attr)}
+                   onEmojiLongPress={() => update(m.attr)(null)}
+                   value={snapshot[m.attr]}
                    {...m} />
           : null)}
 
       <div className='available'>
         {METRICS.vitals.map(
-          m => m.attr in fields
+          m => snapshot[m.attr]
             ? null
             : <span key={m.attr}
                     className={m.attr}
                     title={m.label}
-                    onClick={() => setFields(cur => ({ ...cur, [m.attr]: 0 }))}
+                    onClick={() => update(m.attr)(0)}
               >{m.emoji}</span>)}
       </div>
 
-      <Text value={snapshot.note || ''} update={updateNote} />
+      <Text value={snapshot.note || ''} update={update('note')} />
 
       <Delete snapshot={snapshot} />
     </div>
@@ -119,20 +122,21 @@ const Mood = ({ value, update }) => {
 
 
 const Delete = ({ snapshot }) => {
+  const id = +useParams().id
   const [isActive, setIsActive] = useState(false)
   const navigate = useNavigate()
+
+  onClick = async () => {
+    await db.snapshots.delete(id)
+    navigate(-1)
+  }
 
   return (
     <div className='delete'>
       <span className='emoji' onClick={() => setIsActive(on => !on)}>🗑️ </span>
       {isActive
-       ? <button className='delete'
-                 onClick={() => apiDelete(`snapshot/${snapshot.id}`)
-                          .then(() => navigate(-1))}>Delete</button>
+       ? <button className='delete' onClick={onClick}>Delete</button>
        : null}
     </div>
   )
 }
-
-
-export { Snapshot }

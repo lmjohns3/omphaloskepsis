@@ -4,19 +4,37 @@ dayjs.extend(require('dayjs/plugin/timezone'))
 dayjs.extend(require('dayjs/plugin/localizedFormat'))
 dayjs.extend(require('dayjs/plugin/relativeTime'))
 
+import Dexie from 'dexie'
+import { useLiveQuery } from 'dexie-react-hooks'
 import React from 'react'
-import { Link, redirect, useLoaderData, useNavigate } from 'react-router-dom'
+import { Link, redirect, useNavigate } from 'react-router-dom'
 
-import { apiCreate } from './api.jsx'
+import db from './db.jsx'
+import { useGeo } from './geo.jsx'
 
 import './dashboard.styl'
 
 
-const Dashboard = () => {
+export default () => {
   const navigate = useNavigate()
-  const { snapshots } = useLoaderData() ?? { snapshots: [] }
 
-  const startSnapshot = () => apiCreate('snapshots').then(res => redirect(`/snapshot/${res.id}/`))
+  const snapshots = useLiveQuery(async () => await db.snapshots.toArray())
+
+  const startSnapshot = async () => {
+    const id = await db.snapshots.add({
+      utc: dayjs.utc().unix(),
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    })
+    try {
+      const geo = await useGeo(300)
+      if (geo && geo.coords) {
+        db.snapshots.put({ id, lat: geo.coords.latitude, lng: geo.coords.longitude })
+      }
+    } catch (e) {
+      console.log(e)
+    }
+    navigate(`/snapshot/${id}/`)
+  }
   const startSleep = () => apiCreate('snapshots', { flavor: 'sleep' }).then(res => redirect(`/snapshot/${res.id}/`))
   const startWorkout = () => navigate('/workout/new/')
 
@@ -29,7 +47,7 @@ const Dashboard = () => {
       </div>
       <h1>Recent Snapshots</h1>
       <ul className='snapshots'>
-        {snapshots.map(snapshot => {
+        {snapshots?.map(snapshot => {
           const when = dayjs.unix(snapshot.utc).tz(snapshot.tz)
           return (
             <li key={snapshot.id}>
@@ -46,6 +64,3 @@ const Dashboard = () => {
     </div>
   )
 }
-
-
-export { Dashboard }
