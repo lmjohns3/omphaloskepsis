@@ -10,7 +10,6 @@ import useNoSleep from 'use-no-sleep'
 import React, { useEffect, useRef, useState } from 'react'
 import { useLoaderData } from 'react-router-dom'
 
-import { apiCreate } from './api.jsx'
 import { Meter, METRICS } from './common.jsx'
 import { geoToUtmConverter, getUtmZone, useGeo } from './geo.jsx'
 import lib from './lib.jsx'

@@ -1,11 +1,42 @@
+import dayjs from 'dayjs'
+dayjs.extend(require('dayjs/plugin/utc'))
+dayjs.extend(require('dayjs/plugin/timezone'))
+dayjs.extend(require('dayjs/plugin/localizedFormat'))
+dayjs.extend(require('dayjs/plugin/relativeTime'))
+
 import Dexie from 'dexie'
 
-export default db = new Dexie('oomph')
+import { useGeo } from './geo.jsx'
+
+
+const db = new Dexie('oomph')
+
 
 db.version(1).stores({
-  snapshots: '++id, utc, tz, lat, lng',  // vitals, mood, note
-  collections: '++id, *tags',  // *snapshot-ids
-  habits: '++id',  // title, goal-completions, goal-per-n-seconds, *completion-snapshot
-  workouts: '++id',  // title?, *[ exercise, goal-reps, goal-..., completed-snapshot, completed-reps, completed-... ]
-  exercises: '++id, *tags',  // title, howto-video, howto-text
+  snapshots: '++id, *tags, utc, lat, lng, habitId, sleepId, workoutId',
+  sleeps: '++id',
+  habits: '++id',
+  workouts: '++id',
+  exercises: '++id, *tags',
+  workoutSets: '++id, workoutId, exerciseId',
 })
+
+
+const createSnapshot = async () => {
+  const id = await db.snapshots.add({
+    utc: dayjs.utc().unix(),
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  })
+  try {
+    const geo = await useGeo(200)
+    if (geo && geo.coords) {
+      db.snapshots.put({ id, lat: geo.coords.latitude, lng: geo.coords.longitude })
+    }
+  } catch (e) {
+    console.log(e)
+  }
+  return id
+}
+
+
+export { createSnapshot, db }

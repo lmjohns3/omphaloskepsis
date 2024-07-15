@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react'
 import { useLoaderData, useNavigate, useParams } from 'react-router-dom'
 import Select, { createFilter } from 'react-select'
 
-import { apiRead, apiUpdate } from './api.jsx'
 import { Meter, METRICS } from './common.jsx'
 import lib from './lib.jsx'
 
