@@ -7,7 +7,7 @@ dayjs.extend(require('dayjs/plugin/minMax'))
 import Dexie from 'dexie'
 import React, { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { redirect, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import SunCalc from 'suncalc'
 
 import { useLongPress } from './common.jsx'
@@ -57,9 +57,10 @@ const geoMoments = (utc, snapshots) => {
 // Snapshots in the timeline are grouped by day. A Day here is a component that shows a
 // single 24-hour period.
 const Day = ({ utcLeft }) => {
+  const navigate = useNavigate()
+
   const [x, y] = [utcLeft.unix(), utcLeft.add(24, 'h').add(1, 's').unix()]
   const snapshots = useLiveQuery(() => db.snapshots.where('utc').between(x, y).toArray())
-  if (snapshots && snapshots.length) console.log(x, y, snapshots)
 
   if (!snapshots) return null
 
@@ -80,15 +81,6 @@ const Day = ({ utcLeft }) => {
         <div className='shadow' style={pcts(sun.t.nauticalDusk, sun.tp1.nauticalDawn)}></div>
        </> : null}
       <span className='label'>{utcLeft.format(utcLeft.date() === 1 ? 'D dd MMM YYYY' : 'D dd')}</span>
-      {
-        utcLeft.isAfter(dayjs.utc().subtract(24, 'h')) &&
-          <span id='now'
-                className='snapshot'
-                style={{ left: dayPercent(utcLeft, dayjs.utc()) }}
-                onClick={() => createSnapshot().then(id => redirect(`/snapshot/${id}/`)}>
-            <span className='marker'>⌚</span>
-          </span>
-      }
       {snapshots?.map(s => {
         if (s.workoutId) {
           if (renderedWorkouts[s.workoutId]) return null

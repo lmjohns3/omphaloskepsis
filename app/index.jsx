@@ -13,10 +13,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import {
   createHashRouter,
+  Link,
   NavLink,
   Outlet,
-  redirect,
   RouterProvider,
+  useNavigate,
 } from 'react-router-dom'
 
 //import eruda from 'eruda'
@@ -33,16 +34,11 @@ import Workout from './workout.jsx'
 import './index.styl'
 
 const Index = () => {
+  const navigate = useNavigate()
   const snapshots = useLiveQuery(async () => await db.snapshots.toArray())
 
   return (
     <div className='dashboard container'>
-      <div className='actions'>
-        <button title='New Snapshot' onClick={() => createSnapshot().then(id => redirect(`/snapshot/${id}/`)}>📷️ Take a Snapshot</button>
-        <button title='Start Sleeping'>💤 Start Sleeping</button>
-        <button title='New Workout' onClick={() => redirect('/workout/new/')}>🏋️ Start a Workout</button>
-      </div>
-      <h1>Recent Snapshots</h1>
       <ul className='snapshots'>
         {snapshots?.map(snapshot => {
           const when = dayjs.unix(snapshot.utc).tz(snapshot.tz)
@@ -71,15 +67,23 @@ const Error = err => (
 )
 
 
-const App = () => (
-  <>
-    <nav><ul>
-      <li><NavLink title='Home' to='/'>👁️️</NavLink></li>
-      <li><NavLink title='Timeline' to='/timeline/'>📅️</NavLink></li>
-    </ul></nav>
-    <Outlet />
-  </>
-)
+const App = () => {
+  const navigate = useNavigate()
+
+  return (
+    <>
+      <nav><ul>
+        <li><NavLink title='Home' to='/'>👁️️</NavLink></li>
+        <li><NavLink title='Timeline' to='/timeline/'>📅️</NavLink></li>
+        <li><NavLink title='Habits' to='/habits/'>☑️️</NavLink></li>
+        <li className='sep'></li>
+        <li><a title='Take a Snapshot' onClick={() => createSnapshot().then(id => navigate(`/snapshot/${id}/`))}>📷️</a></li>
+        <li><a title='Go to Sleep' onClick={() => createSleep().then(id => navigate(`/snapshot/${id}/`))}>💤</a></li>
+      </ul></nav>
+      <Outlet />
+    </>
+  )
+}
 
 
 ReactDOM.createRoot(

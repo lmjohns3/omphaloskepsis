@@ -4,7 +4,6 @@ dayjs.extend(require('dayjs/plugin/timezone'))
 dayjs.extend(require('dayjs/plugin/localizedFormat'))
 dayjs.extend(require('dayjs/plugin/relativeTime'))
 
-import Dexie from 'dexie'
 import { useLiveQuery } from 'dexie-react-hooks'
 import React, { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -16,6 +15,7 @@ showdown.setOption('literalMidWordUnderscores', true)
 showdown.setOption('literalMidWordAsterisks', true)
 
 import { Dial, Meter, METRICS } from './common.jsx'
+import { db } from './db.jsx'
 import { Map, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
 
@@ -63,7 +63,7 @@ export default () => {
 
       <div className='available'>
         {METRICS.vitals.map(
-          m => snapshot[m.attr]
+          m => m.attr in snapshot
             ? null
             : <span key={m.attr}
                     className={m.attr}
