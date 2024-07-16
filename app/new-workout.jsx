@@ -1,8 +1,11 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import React, { useMemo, useState } from 'react'
-import { useLoaderData, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import Select, { createFilter } from 'react-select'
 
 import { Meter, METRICS } from './common.jsx'
+import { EXERCISES, WORKOUTS } from './exercises.jsx'
+import { db } from './db.jsx'
 import lib from './lib.jsx'
 
 import './workout.styl'
@@ -10,7 +13,7 @@ import './workout.styl'
 
 export default () => {
   const navigate = useNavigate()
-  const { exercises, workouts } = useLoaderData()
+
   const [goals, setGoals] = useState([])
   const [shuffle, setShuffle] = useState(false)
   const [repeats, setRepeats] = useState(false)
@@ -36,16 +39,15 @@ export default () => {
     ...cur.slice(0, idx), ...cur.slice(idx + 1)
   ])
 
-  const startWorkout = () => {
+  const startWorkout = async () => {
     let expanded = []
-    const limit = repeats ? numRepeats : 1
-    for (let i = 0; i < limit; ++i)
+    for (let i = 0; i < (repeats ? numRepeats : 1); ++i)
       expanded.push(...(shuffle ? lib.shuffle(goals) : goals))
-    apiUpdate('collections', { flavor: 'workout', goals: JSON.stringify(expanded) })
-      .then(res => navigate(`/workout/${res.id}/`))
+    const id = await db.workouts.add({})
+    for (let i = 0; i < expanded.length; ++i)
+      db.exercises.add({ ...expanded[i], order: i, workout: { id } })
+    navigate(`/workout/${id}/`)
   }
-
-  console.log(goals)
 
   return (
     <div className='new-workout'>
@@ -70,9 +72,9 @@ export default () => {
       <Select
         key={goals.map(({ name }) => name).join('-')}
         placeholder='Add an exercise...'
-        options={Object.entries(exercises).sort((a, b) => a[0].localeCompare(b[0]))}
+        options={Object.entries(EXERCISES).sort((a, b) => a[0].localeCompare(b[0]))}
         filterOption={createFilter({
-          stringify: option => `${option.label} ${exercises[option.label].tags.join(' ')}`
+          stringify: option => `${option.label} ${EXERCISES[option.label].tags.join(' ')}`
         })}
         getOptionLabel={([name, _]) => name}
         getOptionValue={([name, _]) => name}
@@ -102,15 +104,6 @@ export default () => {
       ) : null}
 
       {goals.length ? <button className='start' onClick={startWorkout}>Start!</button> : null}
-
-      {goals.length ? null : <h2>Copy from ...</h2>}
-      {goals.length ? null : Object.entries(workouts).map(([name, exs]) => (
-        exs.length < 2 ? null : (
-          <div key={name} className='other-workout'>
-            <h3 className='name'><button onClick={() => setGoals(cur => [...cur, ...exs.map(n => ({ name: n }))])}>{name}</button></h3>
-            <ul className='exercises'>{exs.map(n => <li key={n}>{n}</li>)}</ul>
-          </div>
-        )))}
     </div>
   )
 }

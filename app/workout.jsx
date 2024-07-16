@@ -7,10 +7,12 @@ dayjs.extend(require('dayjs/plugin/localizedFormat'))
 dayjs.extend(require('dayjs/plugin/relativeTime'))
 
 import useNoSleep from 'use-no-sleep'
+import { useLiveQuery } from 'dexie-react-hooks'
 import React, { useEffect, useRef, useState } from 'react'
-import { useLoaderData } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 
 import { Meter, METRICS } from './common.jsx'
+import { db, createSnapshot } from './db.jsx'
 import { geoToUtmConverter, getUtmZone, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
 
@@ -20,30 +22,26 @@ import './workout.styl'
 
 
 export default () => {
-  const { collection, snapshots: initialSnapshots } = useLoaderData()
+  const id = +useParams().id
+  const exercises = useLiveQuery(() => db.exercises.where({ 'workout.id': id }).toArray(), [id])
+  const snapshots = useLiveQuery(() => db.snapshots.where({ 'workout.id': id }).toArray(), [id])
 
-  const [snapshots, setSnapshots] = useState(initialSnapshots)
+  if (!exercises || !snapshots) return null
 
-  const goals = JSON.parse(collection.kv.goals)
-  const totalReps = lib.sum(snapshots.map(s => s.kv.reps ?? 0))
-  const totalDuration = lib.sum(snapshots.map(s => s.kv.duration_s ?? 0))
+  const isComplete = snapshots.length === exercises.length
+  const totalDuration = lib.sum((snapshots || []).map(s => (s.exercise?.duration_s || 0)))
 
   return (
-    <div key={collection.id} className='workout'>
-       {snapshots.length < goals.length
-       ? <ActiveSet key={snapshots.length}
-                    goal={goals[snapshots.length]}
-                    refresh={res => setSnapshots(s => [...s, res])} />
-       : <div className='summary container'>
-           {totalReps ? <span className='reps'><span className='value'>{totalReps}</span> reps</span> : null}
-           <span className='sets'><span className='value'>{snapshots.length}</span> sets</span>
-           <span className='duration'><span className='value'>{lib.formatDuration(totalDuration)}</span></span>
-         </div>}
-      <h3>{'▪'.repeat(snapshots.length)}{'▫'.repeat(goals.length - snapshots.length)}</h3>
-      {snapshots.reverse().map((s, i) =>
+    <div key={id} className='workout'>
+      <h2>{isComplete ? 'Workout Complete!' : 'Current Workout: ' + '▪'.repeat(snapshots.length) + '▫'.repeat(exercises.length - snapshots.length)}</h2>
+      {isComplete ? null : <ActiveSet key={snapshots.length} goal={exercises[snapshots.length]} />}
+      {snapshots.reverse().map(s =>
         <div key={s.id} className='completed-set'>
-          <h2 className='exercise-name'>{goals[i].name}</h2>
-          {METRICS.exercise.map(m => m.attr in s.kv ? <Meter key={m.attr} value={s.kv[m.attr]} {...m} /> : null)}
+          <h3 className='exercise-name'>{s.exercise.name}</h3>
+          {METRICS.exercise.map(m => m.attr in s.exercise && <Meter key={m.attr}
+                                                                    value={s.exercise[m.attr]}
+                                                                    target={exercises.find(e => e.id === s.exercise.id)[m.attr]}
+                                                                    {...m} />)}
         </div>
       )}
     </div>
@@ -51,11 +49,9 @@ export default () => {
 }
 
 
-const ActiveSet = ({ goal, refresh }) => {
-  const { collection } = useLoaderData()
-
+const ActiveSet = ({ goal }) => {
   const [utc, setUtc] = useState(0)
-  const [fields, setFields] = useState({})
+  const [fields, setFields] = useState({ ...goal })
   const [nosleep, setNosleep] = useState(false)
   const awake = useNoSleep(nosleep)
 
@@ -74,28 +70,33 @@ const ActiveSet = ({ goal, refresh }) => {
 
   const commit = () => {
     if (stepTimes.length) {
-      fields['step_count'] = stepTimes.length
-      fields['step_intervals'] = lib.waveletEncode(lib.diff(stepTimes))
+      fields['stepCount'] = stepTimes.length
+      fields['stepIntervals'] = lib.waveletEncode(lib.diff(stepTimes))
     }
     if (geoMeasurements.length) {
-      fields['gps_count'] = geoMeasurements.length
-      fields['gps_lats'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.latitude))
-      fields['gps_lngs'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.longitude))
-      fields['gps_alts'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.altitude))
-      fields['gps_times'] = lib.waveletEncode(geoMeasurements.map(g => g.timestamp))
+      fields['gpsCount'] = geoMeasurements.length
+      fields['gpsLats'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.latitude))
+      fields['gpsLngs'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.longitude))
+      fields['gpsAlts'] = lib.waveletEncode(geoMeasurements.map(g => g.coords.altitude))
+      fields['gpsTimes'] = lib.waveletEncode(geoMeasurements.map(g => g.timestamp))
     }
     if (heartRateMeasurements.length) {
       const rrs = []
       heartRateMeasurements.forEach(hr => rrs.push(...hr.rrs))
-      fields['rr_count'] = rrs.length
-      fields['rr_intervals'] = lib.waveletEncode(rrs)
+      fields['rrCount'] = rrs.length
+      fields['rrIntervals'] = lib.waveletEncode(rrs)
     }
-    apiCreate('snapshots', { utc: utc, collection_id: collection.id, ...fields }).then(refresh)
+    createSnapshot({
+      workout: { id: goal.workout.id },
+      exercise: { id: goal.id, name: goal.name, ...fields },
+    })
   }
+
+  const meters = METRICS.exercise.map(m => m.attr in goal ? <Meter key={m.attr} value={goal[m.attr]} {...m} /> : null)
 
   return (
     <div className='active-set'>
-      <h2 className='exercise-name'>{goal.name}</h2>
+      <h3 className='exercise-name'>{goal.name}</h3>
 
       {navigator.bluetooth &&
        <HeartRateMonitor
@@ -130,14 +131,13 @@ const ActiveSet = ({ goal, refresh }) => {
           )}</div>
           <button className='save' onClick={commit}>Save</button>
         </div>
-      ) : utc ? (
-        goal.duration_s
-          ? <Timer seconds={goal.duration_s} finish={finish} />
-          : <Stopwatch utc={utc} finish={finish} />
       ) : (
         <div className='info'>
-          {METRICS.exercise.map(m => m.attr in goal ? <Meter key={m.attr} value={goal[m.attr]} {...m} /> : null)}
-          <button className='start' onClick={start}>Start!</button>
+          {meters}
+          {!utc ? <button className='start' onClick={start}>Start!</button>
+           : goal.duration_s ? <Timer seconds={goal.duration_s} finish={finish} />
+           : <Stopwatch utc={utc} finish={finish} />
+          }
         </div>
       )}
     </div>
@@ -193,11 +193,13 @@ const Stopwatch = ({ utc, finish }) => {
   }, [])
 
   return (
-    <div className='stopwatch'>
-      <span className='emoji'>⏱️</span>
-      <span className='value'>{lib.formatDuration(elapsed)}</span>
+    <>
+      <div className='stopwatch'>
+        <span className='emoji'>⏱️</span>
+        <span className='value'>{lib.formatDuration(elapsed)}</span>
+      </div>
       <button className='finish' onClick={finish}>Finish</button>
-    </div>
+    </>
   )
 }
 

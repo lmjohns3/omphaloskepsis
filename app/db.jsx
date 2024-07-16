@@ -11,21 +11,20 @@ import { useGeo } from './geo.jsx'
 
 const db = new Dexie('oomph')
 
-
 db.version(1).stores({
-  snapshots: '++id, *tags, utc, lat, lng, habitId, sleepId, workoutId',
+  snapshots: '++id, *tags, utc, lat, lng, exercise.id, habit.id, sleep.id, workout.id',
   sleeps: '++id',
   habits: '++id',
   workouts: '++id',
-  exercises: '++id, *tags',
-  workoutSets: '++id, workoutId, exerciseId',
+  exercises: '++id, workout.id',
 })
 
 
-const createSnapshot = async () => {
+const createSnapshot = async (data = {}) => {
   const id = await db.snapshots.add({
     utc: dayjs.utc().unix(),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    ...data,
   })
   try {
     const geo = await useGeo(200)

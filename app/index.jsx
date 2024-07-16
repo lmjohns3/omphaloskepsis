@@ -101,6 +101,7 @@ ReactDOM.createRoot(
         { path: '/snapshot/:id/', element: <Snapshot /> },
         { path: '/workout/:id/', element: <Workout /> },
         { path: '/workout/new/', element: <NewWorkout /> },
+        { path: '/reset/', loader: () => db.delete() },
       ],
     }])} />
 )

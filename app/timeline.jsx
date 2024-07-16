@@ -82,15 +82,15 @@ const Day = ({ utcLeft }) => {
        </> : null}
       <span className='label'>{utcLeft.format(utcLeft.date() === 1 ? 'D dd MMM YYYY' : 'D dd')}</span>
       {snapshots?.map(s => {
-        if (s.workoutId) {
-          if (renderedWorkouts[s.workoutId]) return null
-          renderedWorkouts[s.workoutId] = true
-          return <Workout key={s.id} utcLeft={utcLeft} id={s.workoutId} />
+        if (s.workout.id) {
+          if (renderedWorkouts[s.workout.id]) return null
+          renderedWorkouts[s.workout.id] = true
+          return <Workout key={s.id} utcLeft={utcLeft} id={s.workout.id} />
         }
-        if (s.sleepId) {
-          if (renderedSleeps[s.sleepId]) return null
-          renderedSleeps[s.sleepId] = true
-          return <Sleep key={s.id} utcLeft={utcLeft} id={s.sleepId} />
+        if (s.sleep.id) {
+          if (renderedSleeps[s.sleep.id]) return null
+          renderedSleeps[s.sleep.id] = true
+          return <Sleep key={s.id} utcLeft={utcLeft} id={s.sleep.id} />
         }
         return <Snapshot key={s.id} utcLeft={utcLeft} snapshot={s} />
       })}
@@ -107,7 +107,7 @@ const Workout = ({ utcLeft, id }) => {
 const Sleep = ({ utcLeft, id }) => {
   const navigate = useNavigate()
 
-  const snapshots = useLiveQuery(() => db.snapshots.where({ sleepId: id }).toArray())
+  const snapshots = useLiveQuery(() => db.snapshots.where({ 'sleep.id': id }).toArray())
 
   if (!snapshots) return null
 

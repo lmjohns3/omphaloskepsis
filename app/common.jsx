@@ -48,7 +48,7 @@ const Dial = ({ icon, label, value, update }) => {
 const METRICS = {
   exercise: [
     { emoji: '🧮', label: 'Reps', attr: 'reps' },
-    { emoji: '🪨', label: 'Resistance', attr: 'resistance_n', formats: { N: null, lb: 0.2248, kg: 0.102 } },
+    { emoji: '🪨', label: 'Resistance', attr: 'resistance_n', formats: { N: null, lbf: 0.2248, kgf: 0.102 } },
     { emoji: '⏱️', label: 'Duration', attr: 'duration_s', formats: { '': [lib.formatDuration, lib.parseDuration] } },
     { emoji: '📍', label: 'Distance', attr: 'distance_m', formats: { m: null, km: 0.001, mi: 0.0062137 } },
     { emoji: '🚲', label: 'Cadence', attr: 'cadence_hz', formats: { Hz: null, rpm: 60 } },
@@ -70,7 +70,7 @@ const METRICS = {
 
 // 💨 🧮 🪨 ⏱️' 📍 🚲 🍔 📏 ⚖️' 🌡️' 💗️' 🫀️' 🩸 🍭 🫁 💪
 
-const Meter = ({ value, label, emoji, formats, onChange, onEmojiLongPress, onEmojiClick }) => {
+const Meter = ({ value, label, emoji, target, formats, onChange, onEmojiLongPress, onEmojiClick }) => {
   const [editing, setEditing] = useState(onChange && !value)
 
   if (!formats) formats = { '': null }
@@ -93,7 +93,12 @@ const Meter = ({ value, label, emoji, formats, onChange, onEmojiLongPress, onEmo
     return v
   }
 
-  const displayed = convertToDisplay(value)
+  const format = x => {
+    return (Math.abs(Math.round(x) - x) < 1e-5) ? Math.round(x) :
+      x < 1 ? x.toPrecision(3) :
+      x < 10 ? x.toPrecision(2) :
+      lib.roundTenths(x)
+  }
 
   const emojiHandlers = onEmojiLongPress ? useLongPress(onEmojiLongPress, onEmojiClick) :
                         onEmojiClick ? { onClick: onEmojiClick } : {}
@@ -105,17 +110,13 @@ const Meter = ({ value, label, emoji, formats, onChange, onEmojiLongPress, onEmo
       <span className={`value ${onChange ? 'can-edit' : ''}`}
             onClick={onChange ? () => setEditing(true) : null}>
         {editing ? <input type='number'
-                          defaultValue={displayed}
+                          defaultValue={convertToDisplay(value)}
                           autoFocus
                           onFocus={e => e.target.select()}
                           onBlur={e => {
                             setEditing(false)
                             onChange(+convertFromDisplay(e.target.value))
-                          }} /> :
-         (Math.abs(Math.round(displayed) - displayed) < 1e-5) ? Math.round(displayed) :
-         displayed < 1 ? displayed.toPrecision(3) :
-         displayed < 10 ? displayed.toPrecision(2) :
-         lib.roundTenths(displayed)}
+                          }} /> : format(convertToDisplay(value))}
       </span>
       <span className={`unit options-${units.length}`} onClick={() => setUnit(u => {
               const i = units.indexOf(u)
@@ -123,6 +124,7 @@ const Meter = ({ value, label, emoji, formats, onChange, onEmojiLongPress, onEmo
               localStorage.setItem(unitStorageKey, next)
               return next
             })}>{unit}</span>
+      {target && <span className='target'>(🎯 {format(convertToDisplay(target))})</span>}
     </div>
   )
 }
