@@ -23,7 +23,7 @@ import {
 //import eruda from 'eruda'
 //eruda.init()
 
-import { createSnapshot, db } from './db.jsx'
+import { createSleep, createSnapshot, db } from './db.jsx'
 
 import Habit from './habits.jsx'
 import NewWorkout from './new-workout.jsx'
@@ -79,6 +79,7 @@ const App = () => {
         <li className='sep'></li>
         <li><a title='Take a Snapshot' onClick={() => createSnapshot().then(id => navigate(`/snapshot/${id}/`))}>📷️</a></li>
         <li><a title='Go to Sleep' onClick={() => createSleep().then(id => navigate(`/snapshot/${id}/`))}>💤</a></li>
+        <li><Link title='Start a Workout' to='/workout/new/'>🏋️</Link></li>
       </ul></nav>
       <Outlet />
     </>

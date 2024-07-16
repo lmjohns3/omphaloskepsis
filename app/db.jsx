@@ -38,11 +38,7 @@ const createSnapshot = async (data = {}) => {
 }
 
 
-const createSleep = async () => {
-  const id = await createSnapshot()
-  await db.snapshots.update(id, { sleepId: await db.sleeps.add() })
-  return id
-}
+const createSleep = async () => createSnapshot({ sleep: { id: await db.sleeps.add({}) } })
 
 
-export { createSnapshot, db }
+export { createSleep, createSnapshot, db }

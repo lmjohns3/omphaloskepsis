@@ -82,12 +82,12 @@ const Day = ({ utcLeft }) => {
        </> : null}
       <span className='label'>{utcLeft.format(utcLeft.date() === 1 ? 'D dd MMM YYYY' : 'D dd')}</span>
       {snapshots?.map(s => {
-        if (s.workout.id) {
+        if (s.workout?.id) {
           if (renderedWorkouts[s.workout.id]) return null
           renderedWorkouts[s.workout.id] = true
           return <Workout key={s.id} utcLeft={utcLeft} id={s.workout.id} />
         }
-        if (s.sleep.id) {
+        if (s.sleep?.id) {
           if (renderedSleeps[s.sleep.id]) return null
           renderedSleeps[s.sleep.id] = true
           return <Sleep key={s.id} utcLeft={utcLeft} id={s.sleep.id} />
@@ -100,13 +100,30 @@ const Day = ({ utcLeft }) => {
 
 
 const Workout = ({ utcLeft, id }) => {
-  return null
+  const navigate = useNavigate()
+  const snapshots = useLiveQuery(() => db.snapshots.where({ 'workout.id': id }).toArray())
+
+  if (!snapshots) return null
+
+  const first = dayjs.unix(snapshots[0]?.utc)
+
+  return first ? (
+    <div id={`workout-${id}`}
+         className='snapshot'
+         onClick={() => navigate(`/workout/${id}`)}
+         style={{
+           left: dayPercent(utcLeft, first),
+           top: '0.25rem',
+           ...(snapshots.length > 1 ? { width: dayPercent(first, dayjs.unix(lib.last(snapshots)?.utc)) } : {}),
+         }}>
+      <div className='marker' style={{ width: '100%' }}>W</div>
+    </div>
+  ) : null
 }
 
 
 const Sleep = ({ utcLeft, id }) => {
   const navigate = useNavigate()
-
   const snapshots = useLiveQuery(() => db.snapshots.where({ 'sleep.id': id }).toArray())
 
   if (!snapshots) return null
@@ -132,8 +149,8 @@ const Sleep = ({ utcLeft, id }) => {
       <Snapshot utcLeft={utcLeft} icon='💤' snapshot={visible[0]} />
       {snapshots.length === 1 && (
         <div className='snapshot wakeup'
-             style={{ left: dayPercent(utcLeft, utcRight) }}
-             onClick={() => db.snapshots.add({ utc: utcRight.unix() }).then(id => navigate(`/snapshot/${id}/`))}>
+             style={{ left: dayPercent(utcLeft, utcRight), top: '0.25rem' }}
+             onClick={() => db.snapshots.add({ utc: utcRight.unix(), sleep: { id: id } }).then(id => navigate(`/snapshot/${id}/`))}>
           <div className='marker'>⏰</div>
         </div>
       )}
