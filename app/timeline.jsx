@@ -116,7 +116,7 @@ const Workout = ({ utcLeft, id }) => {
            top: '0.25rem',
            ...(snapshots.length > 1 ? { width: dayPercent(first, dayjs.unix(lib.last(snapshots)?.utc)) } : {}),
          }}>
-      <div className='marker' style={{ width: '100%' }}>W</div>
+      <div className='marker' style={{ width: '100%' }}>🏋️</div>
     </div>
   ) : null
 }

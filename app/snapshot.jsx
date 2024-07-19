@@ -25,6 +25,7 @@ import './snapshot.styl'
 export default () => {
   const id = +useParams().id
   const navigate = useNavigate()
+  const habits = useLiveQuery(() => db.habits.toArray())
   const snapshots = useLiveQuery(() => db.snapshots.where({ id }).toArray(), [id])
   if (!snapshots) return null
   const snapshot = snapshots[0]
@@ -37,7 +38,13 @@ export default () => {
     <div key={id} className='snapshot'>
       <div className='when'><span className='emoji'>🕰️</span><span>{when.format('llll')}</span></div>
 
-      {!snapshot.lat || !snapshot.lng ? null :
+      {habits && <ul className='habits'>
+                   {habits
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(habit => <li key={habit.id}>{habit.name}{habit.id === snapshot.habit.id ? 'yes!' : ''}</li>)}
+                 </ul>}
+
+      {snapshot.lat && snapshot.lng &&
        <Map lat={snapshot.lat}
             lng={snapshot.lng}
             onChange={([lat, lng]) => db.snapshots.update(snapshot.id, { lat, lng })} />}
@@ -52,24 +59,20 @@ export default () => {
         <Dial icon='😢' label='Sadness' value={snapshot.sadness} update={update('sadness')} />
       </div>
 
-      {METRICS.vitals.map(
-        m => m.attr in snapshot
-          ? <Meter key={m.attr}
-                   onChange={update(m.attr)}
-                   onEmojiLongPress={() => update(m.attr)(null)}
-                   value={snapshot[m.attr]}
-                   {...m} />
-          : null)}
+      {METRICS.vitals.map(m => (m.attr in snapshot) &&
+                          <Meter key={m.attr}
+                                 onChange={update(m.attr)}
+                                 onEmojiLongPress={() => update(m.attr)(null)}
+                                 value={snapshot[m.attr]}
+                                 {...m} />)}
 
       <div className='available'>
-        {METRICS.vitals.map(
-          m => m.attr in snapshot
-            ? null
-            : <span key={m.attr}
-                    className={m.attr}
-                    title={m.label}
-                    onClick={() => update(m.attr)(0)}
-              >{m.emoji}</span>)}
+        {METRICS.vitals.map(m => (m.attr in snapshot) ||
+                            <span key={m.attr}
+                                  className={m.attr}
+                                  title={m.label}
+                                  onClick={() => update(m.attr)(0)}
+                            >{m.emoji}</span>)}
       </div>
 
       <Text value={snapshot.note || ''} update={update('note')} />
@@ -134,9 +137,7 @@ const Delete = ({ snapshot }) => {
   return (
     <div className='delete'>
       <span className='emoji' onClick={() => setIsActive(on => !on)}>🗑️ </span>
-      {isActive
-       ? <button className='delete' onClick={onClick}>Delete</button>
-       : null}
+      {isActive && <button className='delete' onClick={onClick}>Delete</button>}
     </div>
   )
 }

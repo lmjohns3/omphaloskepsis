@@ -23,9 +23,10 @@ import {
 //import eruda from 'eruda'
 //eruda.init()
 
-import { createSleep, createSnapshot, db } from './db.jsx'
+import { createSnapshot, db } from './db.jsx'
 
-import Habit from './habits.jsx'
+import Habit from './habit.jsx'
+import NewHabit from './new-habit.jsx'
 import NewWorkout from './new-workout.jsx'
 import Snapshot from './snapshot.jsx'
 import Timeline from './timeline.jsx'
@@ -33,26 +34,31 @@ import Workout from './workout.jsx'
 
 import './index.styl'
 
+
 const Index = () => {
   const navigate = useNavigate()
-  const snapshots = useLiveQuery(async () => await db.snapshots.toArray())
+  const habits_ = useLiveQuery(() => db.habits.toArray())
+  const habitSnapshots = useLiveQuery(() => db.snapshots.filter(s => s.habit?.id).toArray())
+
+  if (!habits_ || !habitSnapshots) return null
+
+  // Turn habits into a map from ID to habit object.
+  const habits = Object.fromEntries(habits_.map(h => [h.id, { ...h, snapshots: [] }]))
+  // Add snapshots to the corresponding habit object.
+  habitSnapshots.forEach(s => habits[s.habit.id].snapshots.push(s))
 
   return (
     <div className='dashboard container'>
-      <ul className='snapshots'>
-        {snapshots?.map(snapshot => {
-          const when = dayjs.unix(snapshot.utc).tz(snapshot.tz)
+      <ul className='habits'>
+        {Object.values(habits).sort((a, b) => a.name.localeCompare(b.name)).map(habit => {
+          //const when = dayjs.unix(snapshot.utc).tz(snapshot.tz)
+          //<span className='when' title={when.format('llll')}>{when.fromNow()}</span>
           return (
-            <li key={snapshot.id}>
-              <Link to={`/snapshot/${snapshot.id}/`}>
-                <span className='icons'>
-                  {snapshot.lat && '📍️'}
-                  {snapshot.note && '📝'}
-                </span>
-                <span className='when' title={when.format('llll')}>{when.fromNow()}</span>
-              </Link>
+            <li key={habit.id}>
+              <Link to={`/habit/${habit.id}/`}>{habit.name}</Link>
             </li>
-          )})}
+          )
+        })}
       </ul>
     </div>
   )
@@ -69,17 +75,18 @@ const Error = err => (
 
 const App = () => {
   const navigate = useNavigate()
+  const createSleep = async () => createSnapshot({ sleep: { id: await db.sleeps.add({}) } })
 
   return (
     <>
       <nav><ul>
         <li><NavLink title='Home' to='/'>👁️️</NavLink></li>
         <li><NavLink title='Timeline' to='/timeline/'>📅️</NavLink></li>
-        <li><NavLink title='Habits' to='/habits/'>☑️️</NavLink></li>
         <li className='sep'></li>
         <li><a title='Take a Snapshot' onClick={() => createSnapshot().then(id => navigate(`/snapshot/${id}/`))}>📷️</a></li>
         <li><a title='Go to Sleep' onClick={() => createSleep().then(id => navigate(`/snapshot/${id}/`))}>💤</a></li>
         <li><Link title='Start a Workout' to='/workout/new/'>🏋️</Link></li>
+        <li><Link title='Start a Habit' to='/habit/new/'>☑️️</Link></li>
       </ul></nav>
       <Outlet />
     </>
@@ -102,7 +109,7 @@ ReactDOM.createRoot(
         { path: '/snapshot/:id/', element: <Snapshot /> },
         { path: '/workout/:id/', element: <Workout /> },
         { path: '/workout/new/', element: <NewWorkout /> },
-        { path: '/reset/', loader: () => db.delete() },
+        { path: '/deletedeletedelete/', loader: () => db.delete() },
       ],
     }])} />
 )

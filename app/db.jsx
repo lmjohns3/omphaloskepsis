@@ -29,7 +29,7 @@ const createSnapshot = async (data = {}) => {
   try {
     const geo = await useGeo(200)
     if (geo && geo.coords) {
-      db.snapshots.put({ id, lat: geo.coords.latitude, lng: geo.coords.longitude })
+      db.snapshots.update(id, { lat: geo.coords.latitude, lng: geo.coords.longitude })
     }
   } catch (e) {
     console.log(e)
@@ -38,7 +38,4 @@ const createSnapshot = async (data = {}) => {
 }
 
 
-const createSleep = async () => createSnapshot({ sleep: { id: await db.sleeps.add({}) } })
-
-
-export { createSleep, createSnapshot, db }
+export { createSnapshot, db }
