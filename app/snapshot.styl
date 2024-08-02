@@ -1,19 +1,26 @@
 #app > .snapshot
-  & > div
-    display flex
-    margin 0.5em 0
+  display flex
+  flex-flow column
+  gap 0.5em
 
-  .available
-    flex-flow row wrap
-    margin-left 2.5rem
-    opacity 0.5
+  & > *
+    display flex
+    flex-flow row
+    gap 0.0.5em
+
+    & > *:first-child
+      width 2em
 
   .note .rendered
     height 100%
 
     &:hover
       background-color hsla(0, 0%, 50%, 0.1)
-    p
+
+    & > p:first-child
+      margin-top 0
+
+    & > p:last-child
       margin-bottom 0
 
   .map
@@ -25,41 +32,3 @@
       .leaflet-control-attribution
         font-family 'Fira Sans Condensed', sans-serif
         font-size 0.5em
-
-  .mood
-    .bar
-      background linear-gradient(90deg,
-                                 var(--coolwarm-m3),
-                                 var(--coolwarm-m2),
-                                 var(--coolwarm-m1),
-                                 var(--coolwarm-0),
-                                 var(--coolwarm-p1),
-                                 var(--coolwarm-p2),
-                                 var(--coolwarm-p3))
-      cursor pointer
-      height 0.5em
-      margin 1em
-      position relative
-      width calc(100% - 2em)
-
-      .marker
-        font-size 1.5em
-        line-height 1
-        margin-left -0.6em
-        position absolute
-        text-align center
-        top -0.3em
-        width 0.2em
-
-  .feels
-    gap 1em
-
-    .dial .arc
-      &.joy
-        background hsla(50, 70%, 70%, 0.5)
-      &.sadness
-        background hsla(240, 70%, 70%, 0.5)
-      &.anger
-        background hsla(0, 70%, 70%, 0.5)
-      &.fear
-        background hsla(120, 70%, 70%, 0.5)
