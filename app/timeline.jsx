@@ -17,18 +17,39 @@ import lib from './lib.jsx'
 import './timeline.styl'
 
 
-export default () => (
-  <div className='timeline'>
-    <div className='tick' style={{ left: '12.5%' }}></div>
-    <div className='tick' style={{ left: '25%' }}></div>
-    <div className='tick' style={{ left: '37.5%' }}></div>
-    <div className='tick' style={{ left: '50%' }}></div>
-    <div className='tick' style={{ left: '62.5%' }}></div>
-    <div className='tick' style={{ left: '75%' }}></div>
-    <div className='tick' style={{ left: '87.5%' }}></div>
-    {[...Array(360).keys()].map(i => <Day key={i} utcLeft={dayjs.utc().subtract(i, 'd').startOf('d')} />)}
-  </div>
-)
+export default () => {
+  const top = useRef(null)
+  const bottom = useRef(null)
+  const [daysAgo, setDaysAgo] = useState([...Array(60).keys()])
+
+  const handleIntersection = (ref, delta) => () => {
+    const target = ref.current
+    if (!target) return
+    const observer = new IntersectionObserver(
+      es => es[0].isIntersecting ? setDaysAgo(ds => ds.map(d => d + delta)) : null
+    )
+    observer.observe(target)
+    return () => observer.unobserve(target)
+  }
+
+  useEffect(handleIntersection(top, -3), [top])
+  useEffect(handleIntersection(bottom, 3), [bottom])
+
+  return (
+    <div className='timeline'>
+      <div className='tick' style={{ left: '12.5%' }}></div>
+      <div className='tick' style={{ left: '25%' }}></div>
+      <div className='tick' style={{ left: '37.5%' }}></div>
+      <div className='tick' style={{ left: '50%' }}></div>
+      <div className='tick' style={{ left: '62.5%' }}></div>
+      <div className='tick' style={{ left: '75%' }}></div>
+      <div className='tick' style={{ left: '87.5%' }}></div>
+      <div ref={top}></div>
+      {daysAgo.map(d => <Day key={d} utcLeft={dayjs.utc().subtract(d, 'd').startOf('d')} />)}
+      <div ref={bottom}></div>
+    </div>
+  )
+}
 
 
 const dayPercent = (a, b) => `${100 * b.diff(a) / b.diff(b.subtract(24, 'h'))}%`
@@ -81,16 +102,16 @@ const Day = ({ utcLeft }) => {
         <div className='shadow' style={pcts(sun.t.nauticalDusk, sun.tp1.nauticalDawn)}></div>
        </> : null}
       <span className='label'>{utcLeft.format(utcLeft.date() === 1 ? 'D dd MMM YYYY' : 'D dd')}</span>
-      {snapshots?.map(s => {
-        if (s.workout?.id) {
-          if (renderedWorkouts[s.workout.id]) return null
-          renderedWorkouts[s.workout.id] = true
-          return <Workout key={s.id} utcLeft={utcLeft} id={s.workout.id} />
+      {snapshots.map(s => {
+        if (s.workoutId) {
+          if (renderedWorkouts[s.workoutId]) return null
+          renderedWorkouts[s.workoutId] = true
+          return <Workout key={s.id} utcLeft={utcLeft} id={s.workoutId} />
         }
-        if (s.sleep?.id) {
-          if (renderedSleeps[s.sleep.id]) return null
-          renderedSleeps[s.sleep.id] = true
-          return <Sleep key={s.id} utcLeft={utcLeft} id={s.sleep.id} />
+        if (s.sleepId) {
+          if (renderedSleeps[s.sleepId]) return null
+          renderedSleeps[s.sleepId] = true
+          return <Sleep key={s.id} utcLeft={utcLeft} id={s.sleepId} />
         }
         return <Snapshot key={s.id} utcLeft={utcLeft} snapshot={s} />
       })}
@@ -101,7 +122,7 @@ const Day = ({ utcLeft }) => {
 
 const Workout = ({ utcLeft, id }) => {
   const navigate = useNavigate()
-  const snapshots = useLiveQuery(() => db.snapshots.where({ 'workout.id': id }).toArray())
+  const snapshots = useLiveQuery(() => db.snapshots.where({ workoutId: id }).toArray())
 
   if (!snapshots) return null
 
@@ -124,7 +145,7 @@ const Workout = ({ utcLeft, id }) => {
 
 const Sleep = ({ utcLeft, id }) => {
   const navigate = useNavigate()
-  const snapshots = useLiveQuery(() => db.snapshots.where({ 'sleep.id': id }).toArray())
+  const snapshots = useLiveQuery(() => db.snapshots.where({ sleepId: id }).toArray())
 
   if (!snapshots) return null
 
@@ -150,7 +171,7 @@ const Sleep = ({ utcLeft, id }) => {
       {snapshots.length === 1 && (
         <div className='snapshot wakeup'
              style={{ left: dayPercent(utcLeft, utcRight), top: '0.25rem' }}
-             onClick={() => db.snapshots.add({ utc: utcRight.unix(), sleep: { id: id } }).then(id => navigate(`/snapshot/${id}/`))}>
+             onClick={() => createSnapshot({ utc: utcRight.unix(), sleepId: id }).then(id => navigate(`/snapshot/${id}/`))}>
           <div className='marker'>⏰</div>
         </div>
       )}

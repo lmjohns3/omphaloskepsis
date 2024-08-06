@@ -11,29 +11,35 @@ import { useGeo } from './geo.jsx'
 
 const db = new Dexie('oomph')
 
+
 db.version(1).stores({
-  snapshots: '++id, *tags, utc, lat, lng, exercise.id, habit.id, sleep.id, workout.id',
+  settings: '',
+  snapshots: '++id, *tags, utc, lat, lng, sleepId, workoutId, *habitIds',
+  habits: '++id',  // name, goal, perSeconds
   sleeps: '++id',
-  habits: '++id',
-  workouts: '++id',
-  exercises: '++id, workout.id',
+  workouts: '++id, name',  // *goals: { ... }
 })
+
+
+db.on('populate', () => db.settings.add({}, 1))
 
 
 const createSnapshot = async (data = {}) => {
   const id = await db.snapshots.add({
     utc: dayjs.utc().unix(),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    snapshotMetrics: {},
+    habitIds: [],
+    tags: [],
     ...data,
   })
-  try {
-    const geo = await useGeo(200)
+  useGeo().then(geo => {
     if (geo && geo.coords) {
-      db.snapshots.update(id, { lat: geo.coords.latitude, lng: geo.coords.longitude })
+      db.snapshots.update(id, {
+        lat: geo.coords.latitude, lng: geo.coords.longitude
+      })
     }
-  } catch (e) {
-    console.log(e)
-  }
+  }).catch(console.log)
   return id
 }
 

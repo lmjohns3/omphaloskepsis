@@ -42,14 +42,16 @@ const Map = ({ lat, lng, zoom, tiles, onChange }) => {
     watercolor: 'https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png'
   }
   return (
-    <div className='map'>
-      <span className='emoji'>🗺️️ </span>
-      <MapContainer center={[lat, lng]}
-                    zoom={zoom || 10}
-                    onViewportChanged={onChange ? vp => onChange(vp.center) : null}>
-        <TileLayer url={urls[tiles || 'imagery']} attribution={attributions[tiles || 'imagery']} />
-        <Marker position={[lat, lng]} icon={new L.Icon({ iconUrl })}></Marker>
-      </MapContainer>
+    <div className='map flex-row'>
+      <span>🗺️️ </span>
+      {(lat && lng) ? (
+        <MapContainer center={[lat, lng]}
+                      zoom={zoom || 10}
+                      onViewportChanged={onChange ? vp => onChange(vp.center) : null}>
+          <TileLayer url={urls[tiles || 'imagery']} attribution={attributions[tiles || 'imagery']} />
+          <Marker position={[lat, lng]} icon={new L.Icon({ iconUrl })}></Marker>
+        </MapContainer>
+      ) : <span>Set a location...</span>}
     </div>
   )
 }

@@ -59,7 +59,22 @@ button
     color hsl(0, 80%, 40%)
 
 .container
-  margin 0.5rem
+  display flex
+  flex-flow column
+
+  & > *
+    padding 0.5em
+
+    &:nth-child(odd)
+      background hsl(0, 0%, 95%)
+
+.flex-row
+  display flex
+  flex-flow row
+  gap 0.5em
+
+  & > :first-child
+    width 2em
 
 .toggle
   -moz-user-select none

@@ -14,7 +14,7 @@ showdown.setOption('excludeTrailingPunctuationFromURLs', true)
 showdown.setOption('literalMidWordUnderscores', true)
 showdown.setOption('literalMidWordAsterisks', true)
 
-import { Dial, Meter, METRICS } from './common.jsx'
+import { Delete, Meter, SNAPSHOT_METRICS } from './common.jsx'
 import { db } from './db.jsx'
 import { Map, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
@@ -25,59 +25,68 @@ import './snapshot.styl'
 export default () => {
   const id = +useParams().id
   const navigate = useNavigate()
-  const habits = useLiveQuery(() => db.habits.toArray())
-  const snapshots = useLiveQuery(() => db.snapshots.where({ id }).toArray(), [id])
-  if (!snapshots) return null
-  const snapshot = snapshots[0]
+  const snapshots_ = useLiveQuery(() => db.snapshots.where({ id }).toArray(), [id])
+  const habits_ = useLiveQuery(() => db.habits.toArray())
+  if (!habits_ || !snapshots_) return null
+  const snapshot = snapshots_[0]
+  const habits = habits_.sort((a, b) => a.name.localeCompare(b.name))
   if (!snapshot) return navigate('/')
-  const when = dayjs.unix(snapshot.utc).tz(snapshot.tz)
 
-  const update = attr => value => db.snapshots.update(snapshot.id, { [attr]: value })
+  const addHabit = id => db.snapshots.update(snapshot.id, { habitIds: [ ...snapshot.habitIds, id ] })
+  const removeHabit = id => db.snapshots.update(snapshot.id, { habitIds: [ ...snapshot.habitIds.filter(i => i !== id) ] })
+  const update = attr => value => db.snapshots.update(snapshot.id, { [`snapshotMetrics.${attr}`]: value })
 
   return (
-    <div key={id} className='snapshot'>
-      <div className='when'><span className='emoji'>🕰️</span><span>{when.format('llll')}</span></div>
+    <div key={id} className='snapshot container'>
+      <div className='when flex-row'><span>🕰️</span><span>{dayjs.unix(snapshot.utc).tz(snapshot.tz).format('llll')}</span></div>
 
-      {habits && <ul className='habits'>
-                   {habits
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map(habit => <li key={habit.id}>{habit.name}{habit.id === snapshot.habit.id ? 'yes!' : ''}</li>)}
-                 </ul>}
+      <Map lat={snapshot.lat} lng={snapshot.lng} onChange={([lat, lng]) => db.snapshots.update(snapshot.id, { lat, lng })} />
 
-      {snapshot.lat && snapshot.lng &&
-       <Map lat={snapshot.lat}
-            lng={snapshot.lng}
-            onChange={([lat, lng]) => db.snapshots.update(snapshot.id, { lat, lng })} />}
-
-      <Mood value={snapshot.mood} update={update('mood')} />
-
-      <div className='feels'>
-        <span className='emoji'></span>
-        <Dial icon='😄' label='Joy' value={snapshot.joy} update={update('joy')} />
-        <Dial icon='😠' label='Anger' value={snapshot.anger} update={update('anger')} />
-        <Dial icon='😨' label='Fear' value={snapshot.fear} update={update('fear')} />
-        <Dial icon='😢' label='Sadness' value={snapshot.sadness} update={update('sadness')} />
+      <div className='metrics'>
+        <div className='flex-row'>
+          <span></span>
+          <select value='' onChange={e => update(e.target.value)('')}>
+            <option disabled value=''>Add a metric...</option>
+            {
+              SNAPSHOT_METRICS
+                .filter(m => !snapshot.snapshotMetrics[m.attr])
+                .map(m => <option key={m.attr} value={m.attr}>{m.icon} {m.label}</option>)
+            }
+          </select>
+        </div>
+        {Object.entries(snapshot.snapshotMetrics).map(([attr, value]) => (
+          <Meter key={attr}
+                 value={value}
+                 onChange={update(attr)}
+                 onLongPress={() => update(attr)(null)}
+                 {...SNAPSHOT_METRICS.find(m => m.attr === attr)} />
+        ))}
       </div>
 
-      {METRICS.vitals.map(m => (m.attr in snapshot) &&
-                          <Meter key={m.attr}
-                                 onChange={update(m.attr)}
-                                 onEmojiLongPress={() => update(m.attr)(null)}
-                                 value={snapshot[m.attr]}
-                                 {...m} />)}
+      {habits.length === 0 ? null : (
+        <div className='habits'>
+          <div className='flex-row'>
+            <span></span>
+            <select value='' onChange={e => addHabit(+e.target.value)}>
+              <option disabled value=''>Complete a habit...</option>
+              {
+                habits
+                  .filter(h => snapshot.habitIds.indexOf(h.id) < 0)
+                  .map(h => <option key={h.id} value={h.id}>{h.name}</option>)
+              }
+            </select>
+          </div>
+          {snapshot.habitIds.map(id => (
+            <div key={id} className='flex-row' onClick={() => removeHabit(id)}>
+              <span>☑</span><span>{habits.find(h => h.id === id).name}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
-      <div className='available'>
-        {METRICS.vitals.map(m => (m.attr in snapshot) ||
-                            <span key={m.attr}
-                                  className={m.attr}
-                                  title={m.label}
-                                  onClick={() => update(m.attr)(0)}
-                            >{m.emoji}</span>)}
-      </div>
+      <Text value={snapshot.note || ''} update={note => db.snapshots.update(id, { note })} />
 
-      <Text value={snapshot.note || ''} update={update('note')} />
-
-      <Delete snapshot={snapshot} />
+      <Delete onClick={() => db.snapshots.delete(id).then(() => navigate('/'))} />
     </div>
   )
 }
@@ -86,58 +95,18 @@ export default () => {
 const Text = ({ value, update }) => {
   const [isEditing, setIsEditing] = useState(false)
   return (
-    <div className='note'>
-      <span className='emoji'>📝</span>
+    <div className='note flex-row'>
+      <span>📝</span>
       {isEditing ? (
         <textarea autoFocus defaultValue={value}
                   onBlur={e => { setIsEditing(false); update(e.target.value) }} />
       ) : (
-        <div className='rendered'
+        <div className={`rendered ${value ? '' : 'empty'}`}
              onClick={() => setIsEditing(true)}
              dangerouslySetInnerHTML={{
-               __html: new showdown.Converter().makeHtml(value || 'Click to edit!')
+               __html: new showdown.Converter().makeHtml(value || 'Add a note...')
              }} />
       )}
-    </div>
-  )
-}
-
-
-const Mood = ({ value, update }) => {
-  const frac = (1 + (value ?? 0)) / 2
-  const faces = ['😞️', '🙁', '😐', '🙂', '😊']
-  return (
-    <div className='mood'>
-      <span className='emoji' style={{ alignSelf: 'center' }}>🧐</span>
-      <div className='bar' onClick={e => {
-              const { width } = e.target.getBoundingClientRect()
-              if (width < 100) return
-              const x = e.nativeEvent.offsetX
-              update(Math.max(-1, Math.min(1, 2 * x / width - 1)))
-            }}>
-        <span className='marker' style={{ left: `${Math.round(100 * frac)}%` }}>
-          {faces[Math.round(frac * (faces.length - 1))]}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-
-const Delete = ({ snapshot }) => {
-  const id = +useParams().id
-  const [isActive, setIsActive] = useState(false)
-  const navigate = useNavigate()
-
-  onClick = async () => {
-    await db.snapshots.delete(id)
-    navigate(-1)
-  }
-
-  return (
-    <div className='delete'>
-      <span className='emoji' onClick={() => setIsActive(on => !on)}>🗑️ </span>
-      {isActive && <button className='delete' onClick={onClick}>Delete</button>}
     </div>
   )
 }

@@ -9,81 +9,69 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import lib from './lib.jsx'
 
 
-const Dial = ({ icon, label, value, update }) => {
-  value = value ?? 0
-
-  const levels = 20
-  const range = 1.3333 * Math.PI
-  const offset = (Math.PI + range) / 2
-  const level2angle = lev => offset - lev / levels * range
-  const angle2level = ang => Math.round((offset - ang) % (2 * Math.PI) / range * levels)
-
-  const angles = [...Array(1 + Math.max(0, Math.round(levels * value))).keys()].map(l => level2angle(l))
-  const points = [
-    ...angles.map(a => `${50 + 50 * Math.cos(a)}% ${50 - 50 * Math.sin(a)}%`),
-    ...angles.map(a => `${50 + 35 * Math.cos(a)}% ${50 - 35 * Math.sin(a)}%`).reverse(),
-  ]
-
-  const handle = e => {
-    const { width, height } = e.target.getBoundingClientRect()
-    const x = e.nativeEvent.offsetX, y = e.nativeEvent.offsetY
-    const angle = Math.atan2(1 - 2 * y / height, 2 * x / width - 1)
-    const level = angle2level(angle)
-    update(Math.max(0.0, Math.min(1.0, level / levels)))
-  }
+const Delete = ({ onClick }) => {
+  const [isActive, setIsActive] = useState(false)
 
   return (
-    <div className='dial'>
-      <span className={`arc level ${label.toLowerCase()}`}
-            style={{ clipPath: `polygon(${points.join(', ')})` }}></span>
-      <span className='arc range' onClick={handle}></span>
-      <span className='icon'>{icon}</span>
-      <span className='value'>{Math.round(100 * value)}%</span>
-      <span className='label'>{label}</span>
+    <div className='delete flex-row'>
+      <span onClick={() => setIsActive(on => !on)}>🗑️ </span>
+      {isActive && <button className='delete' onClick={onClick}>Delete</button>}
     </div>
   )
 }
 
 
-const METRICS = {
-  exercise: [
-    { emoji: '🧮', label: 'Reps', attr: 'reps' },
-    { emoji: '🪨', label: 'Resistance', attr: 'resistance_n', formats: { N: null, lbf: 0.2248, kgf: 0.102 } },
-    { emoji: '⏱️', label: 'Duration', attr: 'duration_s', formats: { '': [lib.formatDuration, lib.parseDuration] } },
-    { emoji: '📍', label: 'Distance', attr: 'distance_m', formats: { m: null, km: 0.001, mi: 0.0062137 } },
-    { emoji: '🚲', label: 'Cadence', attr: 'cadence_hz', formats: { Hz: null, rpm: 60 } },
-    { emoji: '🍔', label: 'Energy', attr: 'energy_kj', formats: { kJ: null, Wh: 0.2777778, kcal: 0.2388459 } },
-  ],
-  vitals: [
-    { emoji: '📏', label: 'Height', attr: 'height_cm', formats: { 'in': 0.3937, 'cm': null } },
-    { emoji: '⚖️',  label: 'Weight', attr: 'weight_kg', formats: { 'lb': 2.20462, 'st': 0.15747, 'kg': null } },
-    { emoji: '🌡️',  label: 'Body Temperature', attr: 'body_temp_degc', formats: {
-      '°C': null, '°F': [degc => degc * 1.8 + 32, degf => (degf - 32) / 1.8] } },
-    { emoji: '💗️', label: 'Heart Rate', attr: 'heart_rate_bpm', formats: { 'bpm': null, 'Hz': 1 / 60 } },
-    { emoji: '🫀️', label: 'Blood Pressure', attr: 'blood_pressure_mmhg', formats: { 'mmHg': null } },
-    { emoji: '🩸', label: 'Blood Oxygen', attr: 'oxygen_spo2_pct', formats: { '%': null } },
-    { emoji: '🍭', label: 'Glucose', attr: 'glucose_mmol_l', formats: { 'mmol/L': null } },
-    { emoji: '💪', label: 'Lactate', attr: 'lactate_mmol_l', formats: { 'mmol/L': null } },
-    { emoji: '🫁', label: 'VO2 Max', attr: 'vo2_max_ml_kg_min', formats: { 'mL/(kg·min)': null } },
-  ],
-}
+// ⚡ 💨 🧮 🪨 ⏱️ 📍 🚲 🍔 📏  ️️💗️ 🫀️ 🩸 🍭 🫁 💪 🩺 🥛
 
-// 💨 🧮 🪨 ⏱️' 📍 🚲 🍔 📏 ⚖️' 🌡️' 💗️' 🫀️' 🩸 🍭 🫁 💪
 
-const Meter = ({ value, label, emoji, target, formats, onChange, onEmojiLongPress, onEmojiClick }) => {
-  const [editing, setEditing] = useState(onChange && !value)
+const EXERCISE_METRICS = [
+  { icon: '🧮', label: 'Reps', attr: 'reps' },
+  { icon: '🪨', label: 'Resistance', attr: 'resistance_n', formats: { 'N': null, 'lbf': 0.2248, 'kgf': 0.102 } },
+  { icon: '⏱️', label: 'Duration', attr: 'duration_s', formats: { '': [lib.formatDuration, lib.parseDuration] } },
+  { icon: '📍', label: 'Distance', attr: 'distance_m', formats: { 'm': null, 'km': 0.001, 'mi': 0.0062137 } },
+  { icon: '🚲', label: 'Cadence', attr: 'cadence_hz', formats: { 'Hz': null, 'rpm': 60 } },
+  { icon: '🍔', label: 'Energy', attr: 'energy_kj', formats: { 'kJ': null, 'Wh': 0.2777778, 'kcal': 0.2388459 } },
+  { icon: '⚡', label: 'Average Power', attr: 'average_power_w', formats: { 'W': null, 'kcal/min': 0.014330753797649757 } },
+  { icon: '⚡', label: 'Peak Power', attr: 'peak_power_w', formats: { 'W': null, 'kcal/min': 0.014330753797649757 } },
+]
+
+
+const SNAPSHOT_METRICS = [
+  { icon: '📏', label: 'Height', attr: 'height_cm', minimum: 50, maximum: 300, formats: { 'in': 0.3937, 'cm': null } },
+  { icon: '⚖️',  label: 'Weight', attr: 'weight_kg', minimum: 1, maximum: 300, formats: { 'lb': 2.20462, 'st': 0.15747, 'kg': null } },
+  { icon: '🌡️',  label: 'Body Temperature', attr: 'body_temp_degc', minimum: 20, maximum: 50, formats: { '°C': null, '°F': [degc => degc * 1.8 + 32, degf => (degf - 32) / 1.8] } },
+  { icon: '🩸', label: 'Menstrual Flow', attr: 'menstrual_flow', isLikert: true, female: true },
+  { icon: '😬', label: 'Pain', attr: 'pain', isLikert: true },
+  { icon: '😠', label: 'Anger', attr: 'anger', isLikert: true  },
+  { icon: '😨', label: 'Fear', attr: 'fear', isLikert: true  },
+  { icon: '😄', label: 'Joy', attr: 'joy', isLikert: true  },
+  { icon: '😢', label: 'Sadness', attr: 'sadness', isLikert: true  },
+  { icon: '💗️', label: 'Heart Rate', attr: 'heart_rate_bpm', minimum: 10, maximum: 250, formats: { 'bpm': null, 'Hz': 1 / 60 } },
+  { icon: '💨️', label: 'Respiration Rate', attr: 'respiration_rate_bpm', minimum: 1, maximum: 100, formats: { 'bpm': null, 'Hz': 1 / 60 } },
+  { icon: '🫀️', label: 'Blood Pressure', attr: 'blood_pressure_kpa', formats: { 'kPa': null, 'mmHg': 7.50061683 } },
+  { icon: '🫁', label: 'Blood Oxygen', attr: 'oxygen_spo2_pct', minimum: 80, maximum: 100, formats: { '%': null } },
+  { icon: '🍭', label: 'Blood Glucose', attr: 'glucose_mmol_l', minimum: 30, maximum: 300, formats: { 'mmol/L': null } },
+  { icon: '🥛', label: 'Blood Lactate', attr: 'lactate_mmol_l', minimum: 1, maximum: 30, formats: { 'mmol/L': null } },
+  { icon: '💪', label: 'VO2 Max', attr: 'vo2_max_ml_kg_min', minimum: 10, maximum: 100, formats: { 'mL/(kg·min)': null } },
+]
+
+
+const Meter = ({ value, goal, icon, label, minimum, maximum, isLikert, formats, onChange, onLongPress, onClick }) => {
+  const [editing, setEditing] = useState(false)
 
   if (!formats) formats = { '': null }
 
   const units = Object.keys(formats)
-  const unitStorageKey = `omphalos-unit-${label}`
+  const unitStorageKey = `oomph-unit-${label}`
   const [unit, setUnit] = useState(localStorage.getItem(unitStorageKey) ?? units[0])
+
+  const format = x => (Math.abs(Math.round(x) - x) < 1e-5) ? Math.round(x) : lib.roundTenths(x)
 
   const convertToDisplay = v => {
     const f = formats[unit]
-    if (Number.isFinite(f)) return v * f
-    if (f instanceof Array) return f[0](v)
-    return v
+    if (Number.isFinite(f)) return format(v * f)
+    if (f instanceof Array) return format(f[0](v))
+    return format(v)
   }
 
   const convertFromDisplay = v => {
@@ -93,38 +81,53 @@ const Meter = ({ value, label, emoji, target, formats, onChange, onEmojiLongPres
     return v
   }
 
-  const format = x => {
-    return (Math.abs(Math.round(x) - x) < 1e-5) ? Math.round(x) :
-      x < 1 ? x.toPrecision(3) :
-      x < 10 ? x.toPrecision(2) :
-      lib.roundTenths(x)
-  }
+  const handlers = onLongPress ? useLongPress(onLongPress, onClick) : onClick ? { onClick: onClick } : {}
+  const inputAttrs = { minimum: minimum || 0 }
+  if (maximum) inputAttrs.maximum = maximum
 
-  const emojiHandlers = onEmojiLongPress ? useLongPress(onEmojiLongPress, onEmojiClick) :
-                        onEmojiClick ? { onClick: onEmojiClick } : {}
+  if (value === undefined || value === null) return null
 
-  return (value === null || value === undefined) ? null : (
-    <div className='meter' title={label}>
-      <span className='emoji' {...emojiHandlers}>{emoji ?? ''}</span>
+  return (
+    <div className='metric flex-row' title={label}>
+      <span {...handlers}>{icon ?? ''}</span>
       {label ? <span className='label'>{label}</span> : null}
-      <span className={`value ${onChange ? 'can-edit' : ''}`}
-            onClick={onChange ? () => setEditing(true) : null}>
-        {editing ? <input type='number'
-                          defaultValue={convertToDisplay(value)}
-                          autoFocus
-                          onFocus={e => e.target.select()}
-                          onBlur={e => {
-                            setEditing(false)
-                            onChange(+convertFromDisplay(e.target.value))
-                          }} /> : format(convertToDisplay(value))}
-      </span>
-      <span className={`unit options-${units.length}`} onClick={() => setUnit(u => {
-              const i = units.indexOf(u)
-              const next = units[(i + 1) % units.length]
-              localStorage.setItem(unitStorageKey, next)
-              return next
-            })}>{unit}</span>
-      {target && <span className='target'>(🎯 {format(convertToDisplay(target))})</span>}
+      {
+        isLikert ? (
+          <>
+            <input type='range' min='1' max='10' step='1'
+                   defaultValue={value || 1}
+                   onChange={e => onChange(+e.target.value)} />
+            <span className='value'>{value || 1}</span>
+          </>
+        ) : (
+          <>
+            <span className={`value ${onChange ? 'can-edit' : ''}`}
+                  onClick={onChange ? () => setEditing(true) : null}>
+              {
+                (!editing && value)
+                  ? convertToDisplay(value)
+                  : <input type='number'
+                           {...inputAttrs}
+                           defaultValue={value ? convertToDisplay(value) : ''}
+                           autoFocus
+                           onFocus={e => e.target.select()}
+                           onBlur={e => setEditing(false)}
+                           onChange={e => {
+                             setEditing(true)
+                             onChange(+convertFromDisplay(e.target.value))
+                           }} />
+              }
+            </span>
+            <span className={`unit options-${units.length}`} onClick={() => setUnit(u => {
+                    const i = units.indexOf(u)
+                    const next = units[(i + 1) % units.length]
+                    localStorage.setItem(unitStorageKey, next)
+                    return next
+                  })}>{unit}</span>
+          </>
+        )
+      }
+      {goal && <span className='goal'>(🎯 {convertToDisplay(goal)})</span>}
     </div>
   )
 }
@@ -152,7 +155,7 @@ const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700
 
   const clear = useCallback((event, doClick) => {
     timeout.current && clearTimeout(timeout.current)
-    doClick && !didLongPress && onClick()
+    doClick && !didLongPress && onClick && onClick()
     setDidLongPress(false)
     if (preventDefault && target.current) {
       target.current.removeEventListener('touchend', doPreventDefault)
@@ -170,8 +173,9 @@ const useLongPress = (onLongPress, onClick, { preventDefault = true, delay = 700
 
 
 export {
-  Dial,
+  Delete,
+  EXERCISE_METRICS,
   Meter,
-  METRICS,
+  SNAPSHOT_METRICS,
   useLongPress,
 }

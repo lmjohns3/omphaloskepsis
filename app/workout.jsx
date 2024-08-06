@@ -11,7 +11,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import React, { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { Meter, METRICS } from './common.jsx'
+import { EXERCISE_METRICS, Meter, SNAPSHOT_METRICS } from './common.jsx'
 import { db, createSnapshot } from './db.jsx'
 import { geoToUtmConverter, getUtmZone, useGeo } from './geo.jsx'
 import lib from './lib.jsx'
@@ -23,27 +23,37 @@ import './workout.styl'
 
 export default () => {
   const id = +useParams().id
-  const exercises = useLiveQuery(() => db.exercises.where({ 'workout.id': id }).toArray(), [id])
-  const snapshots = useLiveQuery(() => db.snapshots.where({ 'workout.id': id }).toArray(), [id])
+  const workout_ = useLiveQuery(() => db.workouts.where({ id }).toArray(), [id])
+  const snapshots = useLiveQuery(() => db.snapshots.where({ workoutId: id }).toArray(), [id])
+  if (!workout_ || !snapshots) return null
+  const workout = workout_[0]
 
-  if (!exercises || !snapshots) return null
-
-  const isComplete = snapshots.length === exercises.length
+  const isComplete = snapshots.length === workout.goals.length
   const totalDuration = lib.sum((snapshots || []).map(s => (s.exercise?.duration_s || 0)))
 
   return (
     <div key={id} className='workout'>
-      <h2>{isComplete ? 'Workout Complete!' : 'Current Workout: ' + '▪'.repeat(snapshots.length) + '▫'.repeat(exercises.length - snapshots.length)}</h2>
-      {isComplete ? null : <ActiveSet key={snapshots.length} goal={exercises[snapshots.length]} />}
-      {snapshots.reverse().map(s =>
+      <h2>{
+        isComplete ?
+          'Workout Complete!' :
+          'Current Workout: ' + '▪'.repeat(snapshots.length) + '▫'.repeat(workout.goals.length - snapshots.length)
+      }</h2>
+      {isComplete ? null : <ActiveSet key={snapshots.length} goal={workout.goals[snapshots.length]} />}
+      {snapshots.reverse().map(s => (
         <div key={s.id} className='completed-set'>
           <h3 className='exercise-name'>{s.exercise.name}</h3>
-          {METRICS.exercise.map(m => m.attr in s.exercise && <Meter key={m.attr}
-                                                                    value={s.exercise[m.attr]}
-                                                                    target={exercises.find(e => e.id === s.exercise.id)[m.attr]}
-                                                                    {...m} />)}
+          {
+            EXERCISE_METRICS.map(
+              m => s.exercise[m.attr] ?
+                <Meter key={m.attr}
+                       value={s.workout.achieved[m.attr]}
+                       goal={workout.goals[s.workout.goal][m.attr]}
+                       {...m} />
+                : null
+            )
+          }
         </div>
-      )}
+      ))}
     </div>
   )
 }
@@ -87,12 +97,12 @@ const ActiveSet = ({ goal }) => {
       fields['rrIntervals'] = lib.waveletEncode(rrs)
     }
     createSnapshot({
-      workout: { id: goal.workout.id },
-      exercise: { id: goal.id, name: goal.name, ...fields },
+      workoutId: goal.workoutId,
+      exercise: { name: goal.name, ...fields },
     })
   }
 
-  const meters = METRICS.exercise.map(m => m.attr in goal ? <Meter key={m.attr} value={goal[m.attr]} {...m} /> : null)
+  const meters = EXERCISE_METRICS.map(m => m.attr in goal ? <Meter key={m.attr} value={goal[m.attr]} {...m} /> : null)
 
   return (
     <div className='active-set'>
@@ -119,11 +129,11 @@ const ActiveSet = ({ goal }) => {
 
       {fields.duration_s ? (
         <div className='finalize'>
-          {METRICS.exercise.map(m => m.attr in fields ? <Meter key={m.attr}
-                                                               value={fields[m.attr]}
-                                                               onChange={update(m.attr)}
-                                                               {...m} /> : null)}
-          <div className='available'>{METRICS.exercise.map(
+          {EXERCISE_METRICS.map(m => fields[m.attr] ? <Meter key={m.attr}
+                                                             value={fields[m.attr]}
+                                                             onChange={update(m.attr)}
+                                                             {...m} /> : null)}
+          <div className='available'>{EXERCISE_METRICS.map(
             m => m.attr in fields ? null : <span key={m.attr}
                                                  title={m.label}
                                                  onClick={() => setFields(kv => ({ [m.attr]: 0, ...kv }))}

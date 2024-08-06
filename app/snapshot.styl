@@ -1,15 +1,9 @@
 #app > .snapshot
-  display flex
-  flex-flow column
-  gap 0.5em
-
-  & > *
+  .habits
+  .metrics
     display flex
-    flex-flow row
-    gap 0.0.5em
-
-    & > *:first-child
-      width 2em
+    flex-flow column
+    gap 0.5em
 
   .note .rendered
     height 100%
@@ -17,10 +11,10 @@
     &:hover
       background-color hsla(0, 0%, 50%, 0.1)
 
-    & > p:first-child
+    & > :first-child
       margin-top 0
 
-    & > p:last-child
+    & > :last-child
       margin-bottom 0
 
   .map
@@ -30,5 +24,4 @@
       width 100%
 
       .leaflet-control-attribution
-        font-family 'Fira Sans Condensed', sans-serif
         font-size 0.5em
