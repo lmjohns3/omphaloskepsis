@@ -36,8 +36,13 @@ nav
     &:hover
       background-color hsla(0, 0%, 50%, 0.3)
 
-input
-  margin 0 0.2em
+input[type='number']
+  width 3em
+
+input[type='range']
+  width 8em
+
+input[type='text']
   width 5em
 
 textarea
@@ -62,6 +67,10 @@ button
   display flex
   flex-flow column
 
+  h2:first-child
+    margin 0
+    padding-left 3rem
+
   & > *
     padding 0.5em
 
@@ -73,46 +82,8 @@ button
   flex-flow row
   gap 0.5em
 
-  & > :first-child
-    width 2em
-
-.toggle
-  -moz-user-select none
-  -ms-user-select none
-  -webkit-user-select none
-  background-color hsla(150, 0%, 100%, 0.3)
-  border solid 0.1rem #ccc
-  border-radius 0.7rem
-  cursor pointer
-  display inline-block
-  height 1.4rem
-  margin-right 0.5em
-  position relative
-  top 0.3rem
-  transition background-color 0.2s ease-in
-  width 2.5rem
-
-  &:before
-    background-color hsla(150, 100%, 90%, 0.3)
-    border solid 0.1rem hsla(0, 0%, 50%, 0.1)
-    border-radius 100%
-    box-sizing border-box
-    content ''
-    display block
-    height 1rem
-    position absolute
-    right 1.2rem
-    top 0.1rem
-    transition all 0.2s ease-in 0s
-    width 1rem
-
-  &.toggled
-    background-color hsla(150, 80%, 40%, 0.7)
-    border-color hsla(150, 80%, 40%, 0.7)
-
-    &:before
-      border-color hsla(150, 80%, 90%, 0.7)
-      right 0.1rem
+  & > .spacer
+    width 2rem
 
 .metric
   .value

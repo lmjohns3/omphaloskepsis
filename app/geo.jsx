@@ -43,7 +43,7 @@ const Map = ({ lat, lng, zoom, tiles, onChange }) => {
   }
   return (
     <div className='map flex-row'>
-      <span>🗺️️ </span>
+      <span className='spacer'>🗺️️ </span>
       {(lat && lng) ? (
         <MapContainer center={[lat, lng]}
                       zoom={zoom || 10}
