@@ -101,7 +101,10 @@ const Day = ({ utcLeft }) => {
         <div className='shadow' style={pcts(sun.t.dusk, sun.tp1.dawn)}></div>
         <div className='shadow' style={pcts(sun.t.nauticalDusk, sun.tp1.nauticalDawn)}></div>
        </> : null}
-      <span className='label'>{utcLeft.format(utcLeft.date() === 1 ? 'D dd MMM YYYY' : 'D dd')}</span>
+      <span className='label'>
+        <span>{utcLeft.format(utcLeft.date() === 1 ? 'MMMM' : 'D')}</span>
+        <span>{utcLeft.format(utcLeft.date() === 1 ? 'YYYY' : 'ddd')}</span>
+      </span>
       {snapshots.map(s => {
         if (s.workoutId) {
           if (renderedWorkouts[s.workoutId]) return null
