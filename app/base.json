@@ -1,0 +1,917 @@
+{
+  "exercises": {
+    "1.5 Bottomed Out Squat": {
+      "image": "squat.webp",
+      "video": "https://youtu.be/vc1E5CfRfos?t=260",
+      "tags": [
+        "abdominals",
+        "anterior-chain",
+        "barbell",
+        "bodyweight",
+        "calves",
+        "core",
+        "dumbbell",
+        "gluteals",
+        "hamstrings",
+        "quadriceps"
+      ]
+    },
+    "Ab Halo": {
+      "image": "ab-halo.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=905",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core",
+        "obliques"
+      ]
+    },
+    "Angels and Devils": {
+      "image": "angels-and-devils.jpeg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=590",
+      "tags": [
+        "bodyweight",
+        "core",
+        "deltoids",
+        "erector-spinae",
+        "gluteals",
+        "posterior-chain"
+      ]
+    },
+    "Back Widow": {
+      "image": "back-widow.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=890",
+      "tags": [
+        "bodyweight",
+        "deltoids",
+        "horizontal-pull",
+        "trapezius"
+      ]
+    },
+    "Band Pull Apart": {
+      "image": "band-pull-apart.jpg",
+      "tags": [
+        "band",
+        "deltoids",
+        "horizontal-pull",
+        "rotator-cuff",
+        "trapezius"
+      ]
+    },
+    "Band External Rotation": {
+      "image": "band-external-rotation.png",
+      "video": "https://youtu.be/x4cmO-r_B6U?t=919",
+      "tags": [
+        "band",
+        "bilateral",
+        "rotator-cuff"
+      ]
+    },
+    "Band Internal Rotation": {
+      "image": "band-internal-rotation.png",
+      "video": "https://youtu.be/x4cmO-r_B6U?t=919",
+      "tags": [
+        "band",
+        "bilateral",
+        "rotator-cuff"
+      ]
+    },
+    "Band Trunk Rotation": {
+      "image": "band-rotation.jpg",
+      "video": "https://youtu.be/gIhCuqtC0r0?t=297",
+      "tags": [
+        "abdominals",
+        "band",
+        "bilateral",
+        "core",
+        "erector-spinae",
+        "obliques"
+      ]
+    },
+    "Bar Hang": {
+      "image": "bar-hang.avif",
+      "tags": [
+        "bar",
+        "biceps",
+        "bodyweight",
+        "grip",
+        "isometric"
+      ]
+    },
+    "Bicycle Crunch": {
+      "image": "bicycle-crunch.jpg",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core"
+      ]
+    },
+    "Biking": {
+      "tags": [
+        "anterior-chain",
+        "cardio",
+        "calves",
+        "hamstrings",
+        "machine",
+        "quadriceps"
+      ]
+    },
+    "Black Widow Knee Slide": {
+      "image": "black-widow-knee-slide.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=555",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core"
+      ]
+    },
+    "Box Squat": {
+      "image": "single-leg-box-squat.webp",
+      "video": "https://youtu.be/vc1E5CfRfos?t=240",
+      "tags": [
+        "anterior-chain",
+        "bilateral",
+        "bodyweight",
+        "box",
+        "core",
+        "erector-spinae",
+        "gluteals",
+        "plyometric",
+        "quadriceps"
+      ]
+    },
+    "Burpee": {
+      "image": "burpee.jpg",
+      "tags": [
+        "anterior-chain",
+        "bodyweight",
+        "cardio",
+        "core",
+        "deltoids",
+        "gluteals",
+        "horizontal-push",
+        "pectorals",
+        "plyometric",
+        "quadriceps",
+        "rotator-cuff"
+      ]
+    },
+    "Chest Press": {
+      "image": "bench-press.jpg",
+      "tags": [
+        "barbell",
+        "dumbbell",
+        "deltoids",
+        "horizontal-push",
+        "pectorals",
+        "triceps"
+      ]
+    },
+    "Chinup": {
+      "image": "chinup.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=855",
+      "tags": [
+        "bar",
+        "biceps",
+        "bodyweight",
+        "latissimus",
+        "rhomboids",
+        "vertical-pull"
+      ]
+    },
+    "Cobra Pushup": {
+      "image": "cobra-pushup.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=360",
+      "tags": [
+        "bodyweight",
+        "core",
+        "deltoids",
+        "horizontal-push",
+        "pectorals",
+        "triceps"
+      ]
+    },
+    "Crossover Stepup": {
+      "image": "crossover-stepup.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=805",
+      "tags": [
+        "anterior-chain",
+        "barbell",
+        "bodyweight",
+        "box",
+        "dumbbell",
+        "gluteals",
+        "hamstrings",
+        "obliques",
+        "quadriceps"
+      ]
+    },
+    "Deadlift": {
+      "image": "deadlift.jpg",
+      "tags": [
+        "barbell",
+        "core",
+        "dumbbell",
+        "erector-spinae",
+        "gluteals",
+        "hamstrings",
+        "posterior-chain",
+        "trapezius"
+      ]
+    },
+    "Donkey Kick": {
+      "image": "donkey-kick.jpg",
+      "tags": [
+        "band",
+        "bodyweight",
+        "bilateral",
+        "gluteals",
+        "posterior-chain"
+      ]
+    },
+    "Drop Squat": {
+      "image": "db-drop-squat.jpg",
+      "video": null,
+      "tags": [
+        "abdominals",
+        "anterior-chain",
+        "calves",
+        "core",
+        "dumbbell",
+        "gluteals",
+        "hamstrings",
+        "quadriceps"
+      ]
+    },
+    "Elliptical": {
+      "image": "elliptical.jpg",
+      "tags": [
+        "cardio",
+        "gluteals",
+        "hamstrings",
+        "machine",
+        "quadriceps"
+      ]
+    },
+    "Face Pull": {
+      "image": "face-pull.jpg",
+      "video": "https://youtu.be/MiRAi2KOfRQ?t=76",
+      "tags": [
+        "band",
+        "horizontal-pull",
+        "machine",
+        "rotator-cuff"
+      ]
+    },
+    "Farmer Carry": {
+      "image": "farmer-carry.jpg",
+      "tags": [
+        "abdominals",
+        "biceps",
+        "calves",
+        "core",
+        "deltoids",
+        "dumbbell",
+        "erector-spinae",
+        "gluteals",
+        "grip",
+        "hamstrings",
+        "obliques",
+        "quadriceps",
+        "trapezius",
+        "triceps"
+      ]
+    },
+    "Goblet Squat": {
+      "image": "goblet-squat.jpg",
+      "tags": [
+        "abdominals",
+        "anterior-chain",
+        "calves",
+        "core",
+        "deltoids",
+        "dumbbell",
+        "gluteals",
+        "hamstrings",
+        "quadriceps"
+      ]
+    },
+    "Hammer Curl": {
+      "image": "hammer-curl.jpg",
+      "tags": [
+        "biceps"
+      ]
+    },
+    "Handstand Pushup": {
+      "image": "handstand-pushup.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=315",
+      "tags": [
+        "bodyweight",
+        "vertical-push",
+        "wall"
+      ]
+    },
+    "Heel Touch Squat": {
+      "image": "single-leg-heel-touch-squat.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=383",
+      "tags": [
+        "bodyweight",
+        "calves",
+        "core",
+        "erector-spinae",
+        "gluteals",
+        "hamstrings",
+        "posterior-chain",
+        "quadriceps"
+      ]
+    },
+    "High Hip Buck": {
+      "image": "high-hip-buck.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=695",
+      "tags": [
+        "bodyweight",
+        "gluteals"
+      ]
+    },
+    "Hollow Body Hold": {
+      "image": "hollow-body-hold.jpg",
+      "video": "https://youtu.be/BQCdzRPE9Ao",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core",
+        "isometric"
+      ]
+    },
+    "Human Pullover": {
+      "image": "human-pullover.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=475",
+      "tags": [
+        "bodyweight",
+        "latissimus",
+        "vertical-pull"
+      ]
+    },
+    "Inverted Chin Curl": {
+      "image": "inverted-chin-curl.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=525",
+      "tags": [
+        "bar",
+        "biceps",
+        "bodyweight",
+        "horizontal-pull"
+      ]
+    },
+    "Inverted Row": {
+      "image": "inverted-row.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=873",
+      "tags": [
+        "bar",
+        "bodyweight",
+        "deltoids",
+        "horizontal-pull",
+        "latissimus",
+        "trapezius"
+      ]
+    },
+    "Jogging": {
+      "tags": [
+        "bodyweight",
+        "calves",
+        "cardio",
+        "gluteals",
+        "hamstrings",
+        "quadriceps"
+      ]
+    },
+    "Jump Squat": {
+      "image": "jump-squat.webp",
+      "video": "https://youtu.be/vc1E5CfRfos?t=284",
+      "tags": [
+        "abdominals",
+        "anterior-chain",
+        "bodyweight",
+        "calves",
+        "core",
+        "gluteals",
+        "hamstrings",
+        "plyometric",
+        "quadriceps"
+      ]
+    },
+    "Jumping Rope": {
+      "tags": [
+        "anterior-chain",
+        "calves",
+        "cardio",
+        "gluteals",
+        "quadriceps"
+      ]
+    },
+    "Kickback": {
+      "image": "kickback.jpg",
+      "tags": [
+        "bilateral",
+        "dumbbell",
+        "triceps"
+      ]
+    },
+    "Levitation Crunch": {
+      "image": "levitation-crunch.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=572",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core"
+      ]
+    },
+    "Long Leg March": {
+      "image": "long-leg-march.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=675",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core",
+        "gluteals",
+        "hamstrings",
+        "posterior-chain"
+      ]
+    },
+    "Mountain Climber": {
+      "image": "mountain-climber.jpg",
+      "tags": [
+        "abdominals",
+        "anterior-chain",
+        "bodyweight",
+        "cardio",
+        "core",
+        "deltoids",
+        "gluteals",
+        "hamstrings",
+        "plyometric",
+        "quadriceps",
+        "triceps"
+      ]
+    },
+    "Pistol Squat": {
+      "image": "pistol-squat.webp",
+      "tags": [
+        "anterior-chain",
+        "gluteals",
+        "hamstrings",
+        "quadriceps"
+      ]
+    },
+    "Plank": {
+      "image": "plank.jpg",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core",
+        "erector-spinae",
+        "gluteals",
+        "isometric",
+        "obliques",
+        "quadriceps",
+        "rhomboids",
+        "trapezius"
+      ]
+    },
+    "Plyo Sprinter Lunge": {
+      "image": "plyo-sprinter-lunge.webp",
+      "video": "https://youtu.be/vc1E5CfRfos?t=425",
+      "tags": [
+        "bodyweight",
+        "calves",
+        "core",
+        "erector-spinae",
+        "gluteals",
+        "hamstrings",
+        "plyometric",
+        "posterior-chain",
+        "quadriceps"
+      ]
+    },
+    "Pulldown": {
+      "image": "lat-pulldown.gif",
+      "tags": [
+        "band",
+        "biceps",
+        "grip",
+        "latissimus",
+        "machine",
+        "rhomboids",
+        "trapezius",
+        "vertical-pull"
+      ]
+    },
+    "Pullover": {
+      "image": "dumbbell-pullover.jpg",
+      "tags": [
+        "abdominals",
+        "barbell",
+        "dumbbell",
+        "latissimus",
+        "vertical-pull"
+      ]
+    },
+    "Pullthrough": {
+      "image": "pullthrough.jpg",
+      "tags": [
+        "erector-spinae",
+        "gluteals",
+        "posterior-chain",
+        "quadriceps"
+      ]
+    },
+    "Pullup": {
+      "video": "https://youtu.be/vc1E5CfRfos?t=446",
+      "image": "pullup.jpg",
+      "tags": [
+        "band",
+        "biceps",
+        "grip",
+        "latissimus",
+        "machine",
+        "rhomboids",
+        "trapezius",
+        "vertical-pull"
+      ]
+    },
+    "Pushup": {
+      "image": "pushup.jpg",
+      "video": "https://youtu.be/-Mbr55h3BeQ?t=180",
+      "tags": [
+        "bodyweight",
+        "core",
+        "deltoids",
+        "horizontal-push",
+        "pectorals",
+        "triceps"
+      ]
+    },
+    "Reverse Corkscrew": {
+      "image": "reverse-corkscrew.jpeg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=545",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core",
+        "obliques"
+      ]
+    },
+    "Reverse Hyper": {
+      "image": "reverse-hyper.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=940",
+      "tags": [
+        "bodyweight",
+        "erector-spinae",
+        "gluteals",
+        "hamstrings",
+        "posterior-chain"
+      ]
+    },
+    "Reverse Lunge": {
+      "image": "lunge.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=825",
+      "tags": [
+        "anterior-chain",
+        "bilateral",
+        "bodyweight",
+        "dumbbell",
+        "gluteals",
+        "quadriceps"
+      ]
+    },
+    "Rollup": {
+      "image": "rollup.jpg",
+      "video": null,
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core",
+        "pilates"
+      ]
+    },
+    "Rotational Pushup": {
+      "image": "rotational-pushup.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=334",
+      "tags": [
+        "bodyweight",
+        "core",
+        "deltoids",
+        "horizontal-push",
+        "obliques",
+        "pectorals"
+      ]
+    },
+    "Rowing": {
+      "tags": [
+        "anterior-chain",
+        "biceps",
+        "cardio",
+        "erector-spinae",
+        "grip",
+        "latissimus",
+        "machine",
+        "quadriceps",
+        "trapezius"
+      ]
+    },
+    "Russian Twist": {
+      "image": "russian-twist.webp",
+      "video": "https://youtu.be/FqdxxSWKmw4?t=348",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core",
+        "obliques"
+      ]
+    },
+    "Shoulder Press": {
+      "image": "overhead-press.jpg",
+      "tags": [
+        "barbell",
+        "deltoids",
+        "dumbbell",
+        "triceps",
+        "vertical-push"
+      ]
+    },
+    "Side Plank Hip Raise": {
+      "image": "side-plank-hip-raise.jpg",
+      "video": "https://youtu.be/DWmGArQBtFI?t=362",
+      "tags": [
+        "abdominals",
+        "band",
+        "bilateral",
+        "bodyweight",
+        "core",
+        "obliques"
+      ]
+    },
+    "Side Lateral Raise": {
+      "image": "side-lateral-raise.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=750",
+      "tags": [
+        "band",
+        "bilateral",
+        "deltoids",
+        "machine",
+        "rotator-cuff"
+      ]
+    },
+    "Side Plank Leg Raise": {
+      "image": "side-plank-leg-raise.png",
+      "video": "https://youtu.be/gIhCuqtC0r0?t=387",
+      "tags": [
+        "abdominals",
+        "band",
+        "bilateral",
+        "bodyweight",
+        "core",
+        "obliques"
+      ]
+    },
+    "Single Arm Row": {
+      "image": "single-arm-row.jpg",
+      "tags": [
+        "biceps",
+        "bilateral",
+        "deltoids",
+        "horizontal-pull",
+        "latissimus",
+        "trapezius"
+      ]
+    },
+    "Single Arm Shoulder Press": {
+      "image": "single-arm-overhead-press.jpg",
+      "tags": [
+        "bilateral",
+        "deltoids",
+        "dumbbell",
+        "triceps",
+        "vertical-push"
+      ]
+    },
+    "Situp Elbow Thrust": {
+      "image": "sit-up-elbow-thrust.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=930",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core"
+      ]
+    },
+    "Slick Floor Bridge Curl": {
+      "image": "slick-floor-bridge-curl.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=644",
+      "tags": [
+        "bodyweight",
+        "gluteals",
+        "hamstrings",
+        "posterior-chain"
+      ]
+    },
+    "Split Squat": {
+      "image": "lunge.jpg",
+      "tags": [
+        "anterior-chain",
+        "bilateral",
+        "calves",
+        "core",
+        "quadriceps",
+        "gluteals",
+        "hamstrings"
+      ]
+    },
+    "Split Squat Jump": {
+      "image": "plyo-sprinter-lunge.webp",
+      "video": "https://youtu.be/vc1E5CfRfos?t=840",
+      "tags": [
+        "anterior-chain",
+        "bilateral",
+        "calves",
+        "core",
+        "quadriceps",
+        "gluteals",
+        "hamstrings",
+        "plyometric"
+      ]
+    },
+    "Sprinter Lunge": {
+      "image": "sprinter-lunge.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=410",
+      "tags": [
+        "posterior-chain",
+        "bilateral",
+        "calves",
+        "core",
+        "quadriceps",
+        "gluteals",
+        "hamstrings"
+      ]
+    },
+    "Squat": {
+      "image": "squat.webp",
+      "tags": [
+        "anterior-chain",
+        "barbell",
+        "bodyweight",
+        "calves",
+        "core",
+        "dumbbell",
+        "erector-spinae",
+        "quadriceps",
+        "gluteals",
+        "hamstrings"
+      ]
+    },
+    "Suitcase Carry": {
+      "image": "suitcase-carry.jpg",
+      "tags": [
+        "bilateral",
+        "dumbbell",
+        "grip",
+        "obliques"
+      ]
+    },
+    "Swimming": {
+      "tags": [
+        "abdominals",
+        "biceps",
+        "cardio",
+        "deltoids",
+        "gluteals",
+        "hamstrings",
+        "latissimus",
+        "machine",
+        "quadriceps",
+        "triceps"
+      ]
+    },
+    "Towel Pullup": {
+      "image": "towel-pullup.jpg",
+      "video": "https://youtu.be/Z6o1sy-sw_I?t=90",
+      "tags": [
+        "bar",
+        "biceps",
+        "grip",
+        "latissimus",
+        "rhomboids",
+        "trapezius",
+        "vertical-pull"
+      ]
+    },
+    "Triceps Extension": {
+      "image": "triceps-extension.jpg",
+      "video": "https://youtu.be/vc1E5CfRfos?t=785",
+      "tags": [
+        "barbell",
+        "dumbbell",
+        "triceps"
+      ]
+    },
+    "T-Spine Bar Rotation": {
+      "image": "t-spine-bar-rotation.png",
+      "video": "https://youtu.be/g-7ZWPCWv0U?t=148",
+      "tags": [
+        "bar"
+      ]
+    },
+    "Variable Wall Pushup": {
+      "image": "variable-wall-pushup.gif",
+      "video": "https://youtu.be/vc1E5CfRfos?t=715",
+      "tags": [
+        "bodyweight",
+        "core",
+        "deltoids",
+        "horizontal-push",
+        "obliques",
+        "pectorals"
+      ]
+    },
+    "V-Up Tuck": {
+      "image": "v-up-tuck.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=920",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core"
+      ]
+    },
+    "Wall Sit": {
+      "image": "wall-sit.webp",
+      "tags": [
+        "isometric",
+        "quadriceps",
+        "wall"
+      ]
+    }
+  },
+  "workouts": {
+    "Athlean-X Home A": [
+      "Box Squat",
+      "1.5 Bottomed Out Squat",
+      "Jump Squat",
+      "Handstand Pushup",
+      "Rotational Pushup",
+      "Cobra Pushup",
+      "Heel Touch Squat",
+      "Sprinter Lunge",
+      "Plyo Sprinter Lunge",
+      "Pullup",
+      "Human Pullover",
+      "Inverted Chin Curl",
+      "Reverse Corkscrew",
+      "Black Widow Knee Slide",
+      "Levitation Crunch",
+      "Angels and Devils"
+    ],
+    "Athlean-X Home B": [
+      "Slick Floor Bridge Curl",
+      "Long Leg March",
+      "High Hip Buck",
+      "Variable Wall Pushup",
+      "Side Lateral Raise",
+      "Triceps Extension",
+      "Crossover Stepup",
+      "Reverse Lunge",
+      "Split Squat Jump",
+      "Chinup",
+      "Inverted Row",
+      "Back Widow",
+      "Ab Halo",
+      "V-Up Tuck",
+      "Situp Elbow Thrust",
+      "Reverse Hyper"
+    ],
+    "Very Well Fit Full Body": [
+      "Chest Press",
+      "Single Arm Row",
+      "Shoulder Press",
+      "Hammer Curl",
+      "Kickback",
+      "Deadlift",
+      "Squat",
+      "Lunge",
+      "Bicycle Crunch"
+    ],
+    "Athlean-X Beginner A": [
+      "Squat",
+      "Shoulder Press",
+      "Inverted Row",
+      "Split Squat"
+    ],
+    "Athlean-X Beginner B": [
+      "Deadlift",
+      "Reverse Lunge",
+      "Chest Press",
+      "Pullup"
+    ],
+    "Athlean-X Beginner C": [
+      "Rollup",
+      "Suitcase Carry"
+    ]
+  }
+}
