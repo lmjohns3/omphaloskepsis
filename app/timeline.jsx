@@ -22,7 +22,7 @@ export default () => {
   const bottom = useRef(null)
   const [daysAgo, setDaysAgo] = useState([...Array(60).keys()])
 
-  const handleIntersection = (ref, delta) => () => {
+  const intersectionHandler = (ref, delta) => () => {
     const target = ref.current
     if (!target) return
     const observer = new IntersectionObserver(
@@ -32,8 +32,8 @@ export default () => {
     return () => observer.unobserve(target)
   }
 
-  useEffect(handleIntersection(top, -3), [top])
-  useEffect(handleIntersection(bottom, 3), [bottom])
+  useEffect(intersectionHandler(top, -3), [top])
+  useEffect(intersectionHandler(bottom, 3), [bottom])
 
   return (
     <div className='timeline'>
@@ -44,9 +44,9 @@ export default () => {
       <div className='tick' style={{ left: '62.5%' }}></div>
       <div className='tick' style={{ left: '75%' }}></div>
       <div className='tick' style={{ left: '87.5%' }}></div>
-      <div ref={top}></div>
-      {daysAgo.map(d => <Day key={d} utcLeft={dayjs.utc().subtract(d, 'd').startOf('d')} />)}
-      <div ref={bottom}></div>
+      {daysAgo.map((d, i) => <Day key={d}
+                                  ref={i === 0 ? top : i === daysAgo.length - 1 ? bottom : null}
+                                  utcLeft={dayjs.utc().subtract(d, 'd').startOf('d')} />)}
     </div>
   )
 }
@@ -77,7 +77,7 @@ const geoMoments = (utc, snapshots) => {
 
 // Snapshots in the timeline are grouped by day. A Day here is a component that shows a
 // single 24-hour period.
-const Day = ({ utcLeft }) => {
+const Day = ({ ref, utcLeft }) => {
   const navigate = useNavigate()
 
   const [x, y] = [utcLeft.unix(), utcLeft.add(24, 'h').add(1, 's').unix()]
@@ -92,7 +92,7 @@ const Day = ({ utcLeft }) => {
   const renderedSleeps = {}
 
   return (
-    <div className={['day', utcLeft.format('ddd'), utcLeft.format('MMM'), `the-${utcLeft.format('D')}`].join(' ')}>
+    <div ref={ref} className={['day', utcLeft.format('ddd'), utcLeft.format('MMM'), `the-${utcLeft.format('D')}`].join(' ')}>
       {sun.t.sunset ? <>
         <div className='shadow' style={pcts(sun.tm1.sunset, sun.t.sunrise)}></div>
         <div className='shadow' style={pcts(sun.tm1.dusk, sun.t.dawn)}></div>
@@ -160,16 +160,18 @@ const Sleep = ({ utcLeft, id }) => {
   const utcRight = dayjs.min(dayjs.utc(), utcLeft.add(1, 'd').subtract(1, 's'))
   const first = visible.length && snapshots.length && visible[0].id === snapshots[0].id
         ? dayjs.unix(snapshots[0].utc).tz('UTC') : utcLeft
-  const last = lib.last(visible).id === lib.last(snapshots).id
+  const last = dayjs.min(
+    dayjs.unix().tz('UTC'),
+    (
+      lib.last(visible).id === lib.last(snapshots).id
         ? dayjs.unix(lib.last(snapshots).utc).tz('UTC') : utcRight
+    ))
 
   return (
     <>
-      {(snapshots.length > 1) ? (
-        <div className='duration'
-             title={`sleep ${lib.formatDuration(lib.last(snapshots).utc - snapshots[0].utc)}`}
-             style={{ left: dayPercent(utcLeft, first), width: dayPercent(first, last) }}></div>
-      ) : null}
+      <div className='duration'
+           title={`sleep ${lib.formatDuration(lib.last(snapshots).utc - snapshots[0].utc)}`}
+           style={{ left: dayPercent(utcLeft, first), width: dayPercent(first, last) }}></div>
       <Snapshot utcLeft={utcLeft} icon='💤' snapshot={visible[0]} />
       {snapshots.length === 1 && (
         <div className='snapshot wakeup'
