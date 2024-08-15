@@ -36,6 +36,46 @@ nav
     &:hover
       background-color hsla(0, 0%, 50%, 0.3)
 
+.checkbox-label
+  align-items center
+  display flex
+  gap 0.5em
+
+input:focus
+  outline-color hsl(210deg, 50%, 50%)
+
+input[type='checkbox']
+  -webkit-appearance none
+  appearance none
+  background-color transparent
+  border 0.1em solid currentColor
+  border-radius 0.1em
+  color currentColor
+  display grid
+  height 1.1em
+  margin 0
+  place-content center
+  transform translateY(-0.075em)
+  width 1.1em
+
+  &::before
+    background-color CanvasText
+    box-shadow inset 1em 1em #000
+    clip-path polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%)
+    content ''
+    height 0.65em
+    transform scale(0)
+    transform-origin bottom left
+    transition 120ms transform ease-in-out
+    width 0.65em
+
+  &:checked::before
+    transform scale(1)
+
+  &:focus
+    outline max(2px, 0.1em) solid #bdf
+    outline-offset max(2px, 0.1em)
+
 input[type='number']
   width 3em
 
