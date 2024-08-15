@@ -140,6 +140,18 @@
         "quadriceps"
       ]
     },
+    "Bulgarian Split Squat": {
+      "image": "lunge.jpg",
+      "tags": [
+        "anterior-chain",
+        "bilateral",
+        "calves",
+        "core",
+        "quadriceps",
+        "gluteals",
+        "hamstrings"
+      ]
+    },
     "Burpee": {
       "image": "burpee.jpg",
       "tags": [
@@ -231,7 +243,6 @@
     },
     "Drop Squat": {
       "image": "db-drop-squat.jpg",
-      "video": null,
       "tags": [
         "abdominals",
         "anterior-chain",
@@ -374,16 +385,6 @@
         "trapezius"
       ]
     },
-    "Jogging": {
-      "tags": [
-        "bodyweight",
-        "calves",
-        "cardio",
-        "gluteals",
-        "hamstrings",
-        "quadriceps"
-      ]
-    },
     "Jump Squat": {
       "image": "jump-squat.webp",
       "video": "https://youtu.be/vc1E5CfRfos?t=284",
@@ -435,6 +436,17 @@
         "gluteals",
         "hamstrings",
         "posterior-chain"
+      ]
+    },
+    "Lunge": {
+      "image": "lunge.jpg",
+      "tags": [
+        "anterior-chain",
+        "bilateral",
+        "bodyweight",
+        "dumbbell",
+        "gluteals",
+        "quadriceps"
       ]
     },
     "Mountain Climber": {
@@ -585,7 +597,6 @@
     },
     "Rollup": {
       "image": "rollup.jpg",
-      "video": null,
       "tags": [
         "abdominals",
         "bodyweight",
@@ -616,6 +627,16 @@
         "machine",
         "quadriceps",
         "trapezius"
+      ]
+    },
+    "Running": {
+      "tags": [
+        "bodyweight",
+        "calves",
+        "cardio",
+        "gluteals",
+        "hamstrings",
+        "quadriceps"
       ]
     },
     "Russian Twist": {
@@ -713,18 +734,6 @@
         "posterior-chain"
       ]
     },
-    "Split Squat": {
-      "image": "lunge.jpg",
-      "tags": [
-        "anterior-chain",
-        "bilateral",
-        "calves",
-        "core",
-        "quadriceps",
-        "gluteals",
-        "hamstrings"
-      ]
-    },
     "Split Squat Jump": {
       "image": "plyo-sprinter-lunge.webp",
       "video": "https://youtu.be/vc1E5CfRfos?t=840",
@@ -765,15 +774,6 @@
         "quadriceps",
         "gluteals",
         "hamstrings"
-      ]
-    },
-    "Suitcase Carry": {
-      "image": "suitcase-carry.jpg",
-      "tags": [
-        "bilateral",
-        "dumbbell",
-        "grip",
-        "obliques"
       ]
     },
     "Swimming": {
@@ -819,7 +819,26 @@
         "bar"
       ]
     },
-    "Variable Wall Pushup": {
+    "V-Up Tuck": {
+      "image": "v-up-tuck.png",
+      "video": "https://youtu.be/vc1E5CfRfos?t=920",
+      "tags": [
+        "abdominals",
+        "bodyweight",
+        "core"
+      ]
+    },
+    "Walking": {
+      "tags": [
+        "bodyweight",
+        "calves",
+        "cardio",
+        "gluteals",
+        "hamstrings",
+        "quadriceps"
+      ]
+    },
+    "Wall Pushup": {
       "image": "variable-wall-pushup.gif",
       "video": "https://youtu.be/vc1E5CfRfos?t=715",
       "tags": [
@@ -829,15 +848,6 @@
         "horizontal-push",
         "obliques",
         "pectorals"
-      ]
-    },
-    "V-Up Tuck": {
-      "image": "v-up-tuck.png",
-      "video": "https://youtu.be/vc1E5CfRfos?t=920",
-      "tags": [
-        "abdominals",
-        "bodyweight",
-        "core"
       ]
     },
     "Wall Sit": {
@@ -901,7 +911,7 @@
       "Squat",
       "Shoulder Press",
       "Inverted Row",
-      "Split Squat"
+      "Bulgarian Split Squat"
     ],
     "Athlean-X Beginner B": [
       "Deadlift",
@@ -911,7 +921,13 @@
     ],
     "Athlean-X Beginner C": [
       "Rollup",
-      "Suitcase Carry"
+      "Farmer Carry"
+    ],
+    "Basic Home Workout": [
+      "Wall Pushup",
+      "Pullup",
+      "Bulgarian Split Squat",
+      "Black Widow Knee Slide"
     ]
   }
 }
