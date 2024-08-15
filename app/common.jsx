@@ -21,16 +21,13 @@ const Delete = ({ onClick }) => {
 }
 
 
-// ⚡ 💨 🧮 🪨 ⏱️ 📍 🚲 🍔 📏  ️️💗️ 🫀️ 🩸 🍭 🫁 💪 🩺 🥛
-
-
 const EXERCISE_METRICS = [
   { icon: '⚡', label: 'Average Power', attr: 'average_power_w', formats: { 'W': null, 'kcal/min': 0.014330753797649757 } },
   { icon: '🚲', label: 'Cadence', attr: 'cadence_hz', formats: { 'Hz': null, 'rpm': 60 } },
   { icon: '📍', label: 'Distance', attr: 'distance_m', formats: { 'm': null, 'km': 0.001, 'mi': 0.0062137 } },
   { icon: '⏱️', label: 'Duration', attr: 'duration_s', formats: { '': [lib.formatDuration, lib.parseDuration] } },
   { icon: '🍔', label: 'Energy', attr: 'energy_kj', formats: { 'kJ': null, 'Wh': 0.2777778, 'kcal': 0.2388459 } },
-  { icon: '⚡', label: 'Peak Power', attr: 'peak_power_w', formats: { 'W': null, 'kcal/min': 0.014330753797649757 } },
+  { icon: '💥', label: 'Peak Power', attr: 'peak_power_w', formats: { 'W': null, 'kcal/min': 0.014330753797649757 } },
   { icon: '🧮', label: 'Reps', attr: 'reps' },
   { icon: '🪨', label: 'Resistance', attr: 'resistance_n', formats: { 'N': null, 'lbf': 0.2248, 'kgf': 0.102 } },
 ]
@@ -127,7 +124,7 @@ const Meter = ({ value, goal, icon, label, minimum, maximum, isLikert, formats, 
           </>
         )
       }
-      {goal && <span className='goal'>(🎯 {convertToDisplay(goal)})</span>}
+      {goal && <span className='goal'>🎯 {convertToDisplay(goal)}</span>}
     </div>
   )
 }

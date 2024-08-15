@@ -84,7 +84,7 @@ const App = () => (
       <Link title='New Workout' to='/workout/new/'>🏋️</Link>
       <Link title='New Habit' to='/habit/new/'>☑️️</Link>
       <span className='sep'></span>
-      <Link title='Settings' to='/settings/'>️️⚙</Link>
+      <Link title='Settings' to='/settings/'>️️⚙️</Link>
     </nav>
     <Outlet />
   </>
