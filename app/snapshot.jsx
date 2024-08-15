@@ -34,7 +34,7 @@ export default () => {
 
   const addHabit = id => db.snapshots.update(snapshot.id, { habitIds: [ ...snapshot.habitIds, id ] })
   const removeHabit = id => db.snapshots.update(snapshot.id, { habitIds: [ ...snapshot.habitIds.filter(i => i !== id) ] })
-  const update = attr => value => db.snapshots.update(snapshot.id, { [`snapshotMetrics.${attr}`]: value })
+  const update = attr => value => db.snapshots.update(snapshot.id, { [`metrics.${attr}`]: value })
 
   return (
     <div key={id} className='snapshot container'>
@@ -52,12 +52,12 @@ export default () => {
             <option disabled value=''>Add a metric...</option>
             {
               SNAPSHOT_METRICS
-                .filter(m => !snapshot.snapshotMetrics[m.attr])
+                .filter(m => !snapshot.metrics[m.attr])
                 .map(m => <option key={m.attr} value={m.attr}>{m.icon} {m.label}</option>)
             }
           </select>
         </div>
-        {Object.entries(snapshot.snapshotMetrics).map(([attr, value]) => (
+        {Object.entries(snapshot.metrics).map(([attr, value]) => (
           <Meter key={attr}
                  value={value}
                  onChange={update(attr)}

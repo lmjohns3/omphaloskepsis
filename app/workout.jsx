@@ -25,33 +25,39 @@ export default () => {
   const id = +useParams().id
   const workout_ = useLiveQuery(() => db.workouts.where({ id }).toArray(), [id])
   const snapshots = useLiveQuery(() => db.snapshots.where({ workoutId: id }).toArray(), [id])
-  if (!workout_ || !snapshots) return null
+  const exercises_ = useLiveQuery(() => db.exercises.toArray())
+
+  if (!workout_ || !snapshots || !exercises_) return null
+
   const workout = workout_[0]
+  const exercises = Object.fromEntries(exercises_.map(e => [e.id, e]))
 
   const isComplete = snapshots.length === workout.goals.length
   const totalDuration = lib.sum((snapshots || []).map(s => (s.exercise?.duration_s || 0)))
 
   return (
-    <div key={id} className='workout'>
-      <h2>{
-        isComplete ?
-          'Workout Complete!' :
-          'Current Workout: ' + '▪'.repeat(snapshots.length) + '▫'.repeat(workout.goals.length - snapshots.length)
-      }</h2>
-      {isComplete ? null : <ActiveSet key={snapshots.length} goal={workout.goals[snapshots.length]} />}
-      {snapshots.reverse().map(s => (
+    <div key={id} className='workout container'>
+      {isComplete
+       ? <h2>Workout Complete!</h2>
+       : <ActiveSet key={snapshots.length}
+                    workoutId={id}
+                    goal={workout.goals[snapshots.length]}
+                    numCompleted={snapshots.length}
+                    numTotal={workout.goals.length}
+                    exercises={exercises} />}
+      {snapshots.reverse().map((s, i) => (
         <div key={s.id} className='completed-set'>
-          <h3 className='exercise-name'>{s.exercise.name}</h3>
-          {
-            EXERCISE_METRICS.map(
-              m => s.exercise[m.attr] ?
-                <Meter key={m.attr}
-                       value={s.workout.achieved[m.attr]}
-                       goal={workout.goals[s.workout.goal][m.attr]}
-                       {...m} />
-                : null
-            )
-          }
+          <h3 className='flex-row'>
+            <span className='spacer'></span>
+            <span>{exercises[s.exercise.id].name}</span>
+          </h3>
+          {EXERCISE_METRICS.map(
+            m => s.exercise[m.attr] ?
+              <Meter key={m.attr}
+                     value={s.exercise[m.attr]}
+                     goal={workout.goals[snapshots.length - i - 1][m.attr]}
+                     {...m} /> : null
+          )}
         </div>
       ))}
     </div>
@@ -59,9 +65,11 @@ export default () => {
 }
 
 
-const ActiveSet = ({ goal }) => {
-  const [utc, setUtc] = useState(0)
-  const [fields, setFields] = useState({ ...goal })
+const ActiveSet = ({ workoutId, goal, numCompleted, numTotal, exercises }) => {
+  const [startUtc, setStartUtc] = useState(0)
+  const [fields, setFields] = useState(
+    Object.fromEntries(Object.entries(goal).map(([k, v]) => [k, k === 'id' ? v : '']))
+  )
   const [nosleep, setNosleep] = useState(false)
   const awake = useNoSleep(nosleep)
 
@@ -69,11 +77,11 @@ const ActiveSet = ({ goal }) => {
   const [geoMeasurements, setGeoMeasurements] = useState([])
   const [heartRateMeasurements, setHeartRateMeasurements] = useState([])
 
-  const start = () => { setUtc(dayjs.utc().unix()); setNosleep(true) }
+  const start = () => { setStartUtc(dayjs.utc().unix()); setNosleep(true) }
 
   const finish = () => {
     setNosleep(false)
-    setFields(d => ({ ...d, duration_s: dayjs.utc().unix() - utc}))
+    setFields(d => ({ ...d, duration_s: dayjs.utc().unix() - startUtc}))
   }
 
   const update = attr => value => setFields(d => ({ ...d, [attr]: value }))
@@ -96,17 +104,24 @@ const ActiveSet = ({ goal }) => {
       fields['rrCount'] = rrs.length
       fields['rrIntervals'] = lib.waveletEncode(rrs)
     }
-    createSnapshot({
-      workoutId: goal.workoutId,
-      exercise: { name: goal.name, ...fields },
-    })
+    createSnapshot({ workoutId, exercise: { id: goal.id, ...fields } })
   }
 
-  const meters = EXERCISE_METRICS.map(m => m.attr in goal ? <Meter key={m.attr} value={goal[m.attr]} {...m} /> : null)
+  const goalMeters = EXERCISE_METRICS.map(m => m.attr in goal ? <Meter key={m.attr} {...m} value={goal[m.attr]} icon={'🎯'} /> : null)
 
   return (
     <div className='active-set'>
-      <h3 className='exercise-name'>{goal.name}</h3>
+      <div className='progress flex-row'>
+        <span className='spacer'></span>
+        {[...Array(numCompleted)].map((_, i) => <span key={i} className='past'>☑</span>)}
+        <span className='current'>○</span>
+        {[...Array(numTotal - numCompleted)].map((_, i) => i === 0 ? null : <span key={999+i} className='future'>☐</span>)}
+      </div>
+
+      <h3 className='flex-row'>
+        <span className='spacer'></span>
+        <span>{exercises[goal.id].name}</span>
+      </h3>
 
       {navigator.bluetooth &&
        <HeartRateMonitor
@@ -129,26 +144,43 @@ const ActiveSet = ({ goal }) => {
 
       {fields.duration_s ? (
         <div className='finalize'>
-          {EXERCISE_METRICS.map(m => fields[m.attr] ? <Meter key={m.attr}
-                                                             value={fields[m.attr]}
-                                                             onChange={update(m.attr)}
-                                                             {...m} /> : null)}
-          <div className='available'>{EXERCISE_METRICS.map(
-            m => m.attr in fields ? null : <span key={m.attr}
-                                                 title={m.label}
-                                                 onClick={() => setFields(kv => ({ [m.attr]: 0, ...kv }))}
-                                           >{m.emoji}</span>
-          )}</div>
-          <button className='save' onClick={commit}>Save</button>
+          {EXERCISE_METRICS.map(m => m.attr in fields ? <Meter key={m.attr}
+                                                               value={fields[m.attr]}
+                                                               goal={goal[m.attr]}
+                                                               onChange={update(m.attr)}
+                                                               {...m} /> : null)}
+          <div className='flex-row'>
+            <span className='spacer'></span>
+            <select key={Object.keys(fields).join('-')}
+                    defaultValue=''
+                    onChange={e => update(e.target.value)('')}>
+              <option value='' disabled>Add a measurement...</option>
+              {
+                EXERCISE_METRICS
+                  .filter(m => !(m.attr in fields))
+                  .map(m => <option key={m.attr} value={m.attr}>{m.icon} {m.label}</option>)
+              }
+            </select>
+          </div>
+          <div className='flex-row'>
+            <span className='spacer'></span>
+            <button className='save' onClick={commit}>Save</button>
+          </div>
         </div>
       ) : (
-        <div className='info'>
-          {meters}
-          {!utc ? <button className='start' onClick={start}>Start!</button>
-           : goal.duration_s ? <Timer seconds={goal.duration_s} finish={finish} />
-           : <Stopwatch utc={utc} finish={finish} />
-          }
-        </div>
+        <>
+          {goalMeters}
+          {startUtc
+           ? (goal.duration_s
+              ? <Timer seconds={goal.duration_s} finish={finish} />
+              : <Stopwatch startUtc={startUtc} finish={finish} />)
+           : (
+             <div className='flex-row'>
+               <span className='spacer'></span>
+               <button className='start' onClick={start}>Start!</button>
+             </div>
+           )}
+        </>
       )}
     </div>
   )
@@ -185,8 +217,8 @@ const Timer = ({ seconds, finish }) => {
   }, [remaining, finished])
 
   return (
-    <div className='timer'>
-      <span className='emoji'>⏲️</span>
+    <div className='timer flex-row'>
+      <span className='spacer'>⏲️</span>
       <span className='value'>{lib.formatDuration(remaining)}</span>
     </div>
   )
@@ -194,22 +226,20 @@ const Timer = ({ seconds, finish }) => {
 
 
 // A Stopwatch counts seconds since the watch was started.
-const Stopwatch = ({ utc, finish }) => {
+const Stopwatch = ({ startUtc, finish }) => {
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
-    const id = setInterval(() => setElapsed(dayjs().unix() - utc), 100)
+    const id = setInterval(() => setElapsed(dayjs().unix() - startUtc), 100)
     return () => clearInterval(id)
   }, [])
 
   return (
-    <>
-      <div className='stopwatch'>
-        <span className='emoji'>⏱️</span>
-        <span className='value'>{lib.formatDuration(elapsed)}</span>
-      </div>
+    <div className='stopwatch flex-row'>
+      <span className='spacer'>⏱️</span>
+      <span className='value'>{lib.formatDuration(elapsed)}</span>
       <button className='finish' onClick={finish}>Finish</button>
-    </>
+    </div>
   )
 }
 
@@ -260,10 +290,10 @@ const StepCounter = ({ stepCount, increment, clear, sampleFrequencyHz }) => {
   }, [enabled])
 
   return (
-    <div className={`step-counter ${enabled ? 'enabled' : 'disabled'}`}
+    <div className={`step-counter flex-row ${enabled ? 'enabled' : 'disabled'}`}
          onClick={() => setEnabled(on => !on)}
          onDoubleClick={clear}>
-      <span className='emoji'>👟</span>
+      <span className='spacer'>👟</span>
       <span className='value'>{stepCount || '---'}</span>
     </div>
   )
@@ -326,10 +356,10 @@ const HeartRateMonitor = ({ heartRate, addMeasurement, clear }) => {
   }, [enabled])
 
   return (
-    <div className={`heart-rate-monitor ${enabled ? 'enabled' : 'disabled'}`}
+    <div className={`heart-rate-monitor flex-row ${enabled ? 'enabled' : 'disabled'}`}
          onDoubleClick={clear}
          onClick={() => setEnabled(on => !on)}>
-      <span className='emoji'>💗</span>
+      <span className='spacer'>💗</span>
       <span className='value'>{heartRate || '---'}</span>
     </div>
   )
@@ -360,10 +390,10 @@ const PathTracker = ({ distance, addMeasurement, clear, samplePeriodSec }) => {
   }, [enabled])
 
   return (
-    <div className={`path-tracker ${enabled ? 'enabled' : 'disabled'}`}
+    <div className={`path-tracker flex-row ${enabled ? 'enabled' : 'disabled'}`}
          onDoubleClick={clear}
          onClick={() => setEnabled(on => !on)}>
-      <span className='emoji'>🗺️</span>
+      <span className='spacer'>🗺️</span>
       <span className='distance'>{`${distance} m`}</span>
     </div>
   )
