@@ -17,18 +17,37 @@ db.version(1).stores({
   snapshots: '++id, *tags, utc, lat, lng, sleepId, workoutId, *habitIds',
   habits: '++id',  // name, goal, perSeconds
   sleeps: '++id',
-  workouts: '++id, name',  // *goals: { ... }
+  workouts: '++id, &name',  // *goals: { ... }
+  exercises: '++id, &name, *tags',
 })
 
 
-db.on('populate', () => db.settings.add({}, 1))
+db.on('populate', async () => {
+  db.settings.add({}, 1)
+
+  const base = await (await fetch('base.json')).json()
+
+  const exercises_ = Object.entries(base.exercises).map(([key, value]) => ({ name: key, ...value }))
+  await db.exercises.bulkAdd(exercises_)
+  const exercises = Object.fromEntries((await db.exercises.toArray()).map(e => ([e.name, e])))
+
+  await db.workouts.bulkAdd(
+    Object.entries(base.workouts).map(([name, exs]) => {
+      const goals = exs.map(ex => {
+        if (!exercises[ex]) console.error('base exercise not found!', ex)
+        return { id: exercises[ex].id }
+      })
+      return { name, goals }
+    })
+  )
+})
 
 
 const createSnapshot = async (data = {}) => {
   const id = await db.snapshots.add({
     utc: dayjs.utc().unix(),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    snapshotMetrics: {},
+    metrics: {},
     habitIds: [],
     tags: [],
     ...data,
