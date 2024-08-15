@@ -1,5 +1,8 @@
 #app > .workout
 
+  h3
+    margin 0
+
   iframe
     aspect-ratio 16 / 9
     max-width 100%
@@ -8,9 +11,6 @@
   img
     max-width 6em
     max-height 6em
-
-  .available
-    margin-left 2em
 
   .step-counter
   .path-tracker
@@ -25,19 +25,29 @@
     &.enabled
       opacity 1
 
-  .summary
-    .value
-      font-weight bold
-
-  .completed-set
-    margin-top 0.5em
+  .summary .value
+    font-weight bold
 
   .active-set
-    background-color hsla(0, 0%, 50%, 0.1)
-    padding 1em 0
+    background hsl(60deg, 70%, 90%)
+    border-bottom solid 2px hsl(0, 0%, 0%)
 
+  .progress
+    gap 0.2em
+    .spacer
+      width 2.3rem
+    .current
+      margin-top -0.13em
+    .future
+      color hsl(60deg, 30%, 70%)
+
+  button.start
+    margin-top 0.5em
 
 #app > .new-workout
+
+  h3
+    margin 0
 
   button.remove
   button.update-all
@@ -51,7 +61,6 @@
     margin-left 0.5em
 
   #num-repeats
-    margin-left 0.5em
     width 3em
 
   .other-workout

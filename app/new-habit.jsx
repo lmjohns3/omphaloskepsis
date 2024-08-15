@@ -1,5 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { db } from './db.jsx'
 import lib from './lib.jsx'
@@ -17,6 +18,7 @@ const PERIOD_UNITS = {
 
 
 export default () => {
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [goal, setGoal] = useState(2)
   const [periodCount, setPeriodCount] = useState(3)
@@ -29,8 +31,7 @@ export default () => {
         <input type='text' autoFocus name='name' value={name} onChange={e => setName(e.target.value)} />
       </h2>
       <span className='flex-row'>
-        <span className='spacer'></span>
-        <span>Goal:</span>
+        <span className='spacer'>🎯</span>
         <input type='number' min='1' name='goal' value={goal} onChange={e => setGoal(e.target.value)} />
         <span>completion{goal > 1 ? 's' : ''} every</span>
         <input type='number' min='1' name='periodCount' value={periodCount} onChange={e => setPeriodCount(e.target.value)} />
@@ -39,9 +40,10 @@ export default () => {
         </select>
       </span>
       <span className='flex-row'>
-        <span className='spacer'></span>
-        <button onClick={() => db.habits.add({ name, goal, perSeconds: periodCount * PERIOD_UNITS[periodUnit] })
-                                        .then(id => navigate(`/habit/${id}/`))}>Create</button>
+        <button className='start' onClick={
+          () => db.habits.add({ name, goal, perSeconds: periodCount * PERIOD_UNITS[periodUnit] })
+                         .then(id => navigate(`/`))
+        }>Create</button>
       </span>
     </div>
   )
